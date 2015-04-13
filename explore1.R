@@ -1,8 +1,11 @@
 ## PDX DATA SCIENCE KAGGLE PROJECT
 ##
+## This is an exploratory look at some of the data. 
+## the program provides for sampling the data (to get is small)
+## and then looks at some cursory summary statistics
 
-## Get trining data
-##
+## GET TRAINING DATA
+
         directory<- "/Users/winstonsaunders/Documents/pdxkagglegroupproductclassproject/"
         file_name<- "train.csv"
         
@@ -10,15 +13,18 @@
         
         print(head(train_data))
 
+## LOAD REQUIRED PACKAGES
         
         require(plyr)
         require(ggplot2)
         require(tidyr)
-        ## create a subset for simpler debugging
+
+## PRINT THE DIMENSIONS OF THE TRAINING DATA
+        ## ensure proper read of data
         
         print(dim(train_data))
    
-        ## SAMPLE DATA FOR QUICK LOOKS
+## SAMPLE DATA FOR QUICK LOOKS
         ##
         ## if sample_data == TRUE then creates a sample of overall data
         sample_data<-TRUE
@@ -37,17 +43,24 @@
                         ## assign subset to data frame name temporarily
         
                         train_data<-train_data_T ## remove this for full analysis
-           }    
+                }    
         
+## DATA MUNGING
         ## convert from wide to long format
         require(tidyr)
+        ## use tidyr package to munge the data into a long format with the feature id as a feature variable
         long_train<-gather(train_data, feature, data, feat_1:feat_93)
         
+        print(head(long_train,12))
+        
               
-        ## summarize using ddply
+        ## summarize using ddply to get means and standard deviations
         train_morph<-ddply(long_train, c("target", "feature"), summarize, mean_data = mean(data), sdev_data = sqrt(var(data)))
+        ## calculate the z-stat
+        train_morph$z_stat<-train_morph$mean_data/(train_morph$sdev_data+.00001)
         
-        
+
+## INFORMATIONAL PLOTS
         
         p<-ggplot(train_morph, aes(x=target, y=mean_data, color=feature))+geom_point()+ theme_bw()
         p <- p + ggtitle("means of several features versus class")
@@ -59,16 +72,15 @@
         p <- p + theme(axis.text.x = element_text(angle=90))
         print(p)
         
-        p<-ggplot(train_morph, aes(x=target, y=sdev_data, color=feature))+geom_point()+ theme_bw()
-        p <- p + ggtitle("standard deviations of several features versus class")
+        p<-ggplot(train_morph, aes(x=target, y=z_stat, color=feature))+geom_point(size=3)+ theme_bw()
+        p <- p + ggtitle("z_stat of several features versus class")
         p <- p + guides(color=guide_legend(nrow=10))
         print(p)
-        
-        
-        
-        
+                
         ## used information from here: http://www.computerworld.com/article/2486425/business-intelligence-4-data-wrangling-tasks-in-r-for-advanced-beginners.html
-        train_class <- ddply(train_morph, c("target"), transform, max=max(mean_data) )
-        train_class <- train_class[train_class$mean_data==train_class$max,]
+        train_class <- ddply(train_morph, c("target"), transform, max=max(z_stat) )
+        train_class <- train_class[train_class$z_stat==train_class$max & !is.na(train_class$max),]
         
         print(train_class)
+        
+        hist(train_class$z_stat)
