@@ -83,4 +83,5 @@
         
         print(train_class)
         
+        ## plot a histogram 
         hist(train_class$z_stat)
