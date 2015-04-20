@@ -1,0 +1,64 @@
+Exploratory Summary
+========================================================
+author: Winston Saunders
+date: April 20 2015
+transition: rotate
+
+```{r, echo=FALSE}
+setwd("/Users/winstonsaunders/Documents/pdxkagglegroupproductclassproject/")
+```
+
+***
+![alt text](tactical.001.jpg)
+
+
+Grabbing the data
+========================================================
+
+```{r, echo=FALSE}
+        ## Get the data
+        directory<- "/Users/winstonsaunders/Documents/pdxkagglegroupproductclassproject/"
+        file_name<- "train.csv"
+        
+        train_data<-read.csv(paste0(directory,file_name))
+        dd<-dim(train_data)
+
+```
+The train data set has `r dd[1]` rows and `r dd[2]` columns. 
+
+Let's look at a subset of the data to get a familiarity with it <small>
+
+```{r, echo=FALSE, results='asis' }
+require(xtable)
+
+print(xtable(train_data[1:4, c(1:6, 93:95)]), type="html",include.rownames = FALSE)
+```
+</small>
+Basically a table with integers and target classes. It's easy to verify there are no incomplete cases. The number of elements in each class is shown below.
+<small>
+```{r, echo=FALSE, results='asis' }
+print(xtable(t(table(train_data$target))), type="html",include.rownames = FALSE)
+```
+</small>
+
+Munging
+========================================================
+
+To get the data close to analyzable the first step is to convert it from a "wide" to a "long" format.
+
+```{r}
+        ## Get required packages
+        require(plyr)
+        require(ggplot2)
+        require(tidyr)
+```
+
+
+
+
+Slide With Plot
+========================================================
+
+```{r, echo=FALSE}
+plot(cars)
+```

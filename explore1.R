@@ -1,6 +1,6 @@
 ## PDX DATA SCIENCE KAGGLE PROJECT
 ##
-## This is an exploratory look at some of the data. 
+## This is an exploratory look at some of the data in the kaggle product classification competition.
 ## the program provides for sampling the data (to get is small)
 ## and then looks at some cursory summary statistics
 
