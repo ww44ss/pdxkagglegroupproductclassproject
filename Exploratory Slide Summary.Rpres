@@ -41,24 +41,88 @@ print(xtable(t(table(train_data$target))), type="html",include.rownames = FALSE)
 ```
 </small>
 
+
+
+Create a data sample
+========================================================
+
+```{r, echo=FALSE}
+sample_data<-TRUE
+        
+        set.seed(8675309)    
+        if (sample_data == TRUE){
+                feats<-colnames(train_data)
+                feats<-feats[3:93]
+        
+                        sample_rows <- sample(1:dim(train_data)[1], 4000)
+                        sample_columns<-c("id","feat_1", sample(feats, 28), "feat_93", "target")
+        
+                        train_data_T <- train_data[sample_rows, sample_columns]
+                        dd<-dim(train_data_T)
+        
+                        ## assign subset to data frame name temporarily
+        
+                        train_data<-train_data_T ## remove this for full analysis
+        }  
+```
+
+The sampled train data set now has `r dd[1]` rows and `r dd[2]` columns. 
+
+And a subset of the data to get a familiarity with it <small>
+
+```{r, echo=FALSE, results='asis' }
+require(xtable)
+
+print(xtable(train_data[1:4,c(1:7,dd[2]) ]), type="html",include.rownames = FALSE)
+```
+
+</small>
+
+
 Munging
 ========================================================
 
-To get the data close to analyzable the first step is to convert it from a "wide" to a "long" format.
-
+To get the data analyzable convert it to a "long" format.
+<small>
 ```{r}
-        ## Get required packages
-        require(plyr)
-        require(ggplot2)
-        require(tidyr)
+## Get required packages
+require(plyr); require(ggplot2); require(tidyr)
 ```
 
 
 
+```{r}
+## use tidyr package to munge the data into a long format 
+long_train<-gather(train_data, feature, data, feat_1:feat_93)
+```
 
-Slide With Plot
-========================================================
+```{r, echo=FALSE, results='asis' }
+require(xtable)
+print(xtable(head(long_train)), type="html",include.rownames = FALSE)
+```
+</small>
 
-```{r, echo=FALSE}
-plot(cars)
+First summary
+============================================
+
+<small>
+```{r}
+## use ddply to get means and standard deviations
+train_morph<-ddply(long_train, c("target", "feature"), summarize, mean_data = mean(data), sdev_data = sqrt(var(data)))
+
+
+## calculate z-stat
+## add small value to prevent overflow errors
+train_morph$z_stat<-train_morph$mean_data/(train_morph$sdev_data+0.00001)
+```
+</small>
+
+PLot1
+=========================================
+
+```{r, fig.width=12, fig.height=4, echo=FALSE}
+ p<-ggplot(train_morph, aes(x=target, y=mean_data, color=feature))+geom_point(size=2)+ theme_bw()
+p <- p + ggtitle("means of several features versus class")
+p <- p + guides(color=guide_legend(nrow=10))
+print(p)
 ```
