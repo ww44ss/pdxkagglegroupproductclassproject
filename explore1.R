@@ -85,5 +85,21 @@
         
         ## plot a histogram 
 #        hist(train_class$z_stat)
+##
+##        
+##        
+##       TREES
+##
+##
+        library(rpart)
+        ###
+        fit<-rpart(target~.-target-id, method="class", 
+                   data=train_data[train_data$target=="Class_1"|train_data$target=="Class_2",])
+        
+        plot(fit)
         
         
+        
+        plot(fit, uniform=TRUE, 
+             main="Classification Tree for Product Class")
+        text(fit, use.n=TRUE, all=TRUE, cex=.5)  

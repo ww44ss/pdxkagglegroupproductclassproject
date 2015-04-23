@@ -197,7 +197,7 @@ p <- ggplot(train_morph[train_morph$z_stat>0.5,], aes(x=mean_data, y=z_stat, col
 >This starts to look selective  
 
 
-Decision Tree Class1 vs Class2 vs. Class 3
+Decision Tree Class1 vs Class2 
 ===================================
 
 Decision trees also appear to offer a good way to distinguish.
@@ -206,20 +206,68 @@ Decision trees also appear to offer a good way to distinguish.
 library(rpart)
 
         fit<-rpart(target~.-target-id, method="class", 
-                   data=train_data[train_data$target=="Class_1"|train_data$target=="Class_2"|train_data$target=="Class_3",])
+                   data=train_data[train_data$target=="Class_1"|train_data$target=="Class_2",])
 
 
         plotcp(fit)
 ```
 
-Tree Plot (pruned to cp=0.016)
+Tree Plot (pruned to cp=0.02)
 ===================================
-```{r, fig.width=10, fig.height=8, fig.align="center", echo=FALSE}
+
+This shows just a few features (e.g. 17, 78, and 84) can do a pretty good job discriminating between Class\_1 and Class\_2. 
+
+
+```{r, fig.width=10, fig.height=6, fig.align="center", echo=FALSE}
         
-fit_cp<-prune(fit, cp=0.016)
+fit_cp<-prune(fit, cp=0.02)
 plot(fit_cp, uniform=TRUE, 
-             main="Classification Tree Class_1 Class_2 Class_3")
+             main="Classification Tree Class_1 Class_2")
 text(fit, use.n=TRUE, all=TRUE, cex=0.9) 
 
 
 ```
+
+
+Decision Tree Class1 vs Class6 
+===================================
+
+Here's a look at a different pairing (Class\_1 and CLass\_6)
+
+```{r, fig.width=12, fig.height=6, fig.align="center",echo=FALSE}
+library(rpart)
+
+        fit<-rpart(target~.-target-id, method="class", 
+                   data=train_data[train_data$target=="Class_1"|train_data$target=="Class_6",])
+
+
+        plotcp(fit)
+```
+
+Tree Plot (pruned to cp=0.02)
+===================================
+
+This shows many more features (e.g. 8, 78, 6, &c.) are needed to discriminate between Class\_1 and Class\_6. Though feat\_78 is common between the two analyses.
+
+
+```{r, fig.width=10, fig.height=6, fig.align="center", echo=FALSE}
+        
+fit_cp<-prune(fit, cp=0.02)
+plot(fit_cp, uniform=TRUE, 
+             main="Classification Tree Class_1 Class_2")
+text(fit, use.n=TRUE, all=TRUE, cex=0.9) 
+
+
+```
+
+Next Steps
+=========================================
+
+Examine more pairwise trees.  
+Understand if the variable _values_ contribute information.   
+Run generic random forest as benchmark.  
+
+>Cheers!
+
+
+
