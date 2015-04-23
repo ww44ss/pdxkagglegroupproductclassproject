@@ -203,16 +203,25 @@ Decision Tree Class1 vs Class2 vs. Class 3
 
 Decision trees also appear to offer a good way to distinguish.
 
-```{r, , fig.width=12, fig.height=6, fig.align="center",echo=FALSE}
+```{r, fig.width=12, fig.height=6, fig.align="center",echo=FALSE}
 library(rpart)
 
         fit<-rpart(target~.-target-id, method="class", 
                    data=train_data[train_data$target=="Class_1"|train_data$target=="Class_2"|train_data$target=="Class_3",])
 
+
+        plotcp(fit)
+```
+
+Tree Plot
+===================================
+
+```{r, fig.width=10, fig.height=8, fig.align="center", echo=FALSE}
         
-        plot(fit, uniform=TRUE, 
-             main="Classification Tree for Product Class_1 v. Class_2")
-        text(fit, use.n=TRUE, all=TRUE, cex=.9) 
+fit_cp<-prune(fit, cp=0.016)
+plot(fit_cp, uniform=TRUE, 
+             main="Classification Tree Class_1 Class_2 Class_3")
+text(fit, use.n=TRUE, all=TRUE, cex=0.9) 
 
 
 ```
