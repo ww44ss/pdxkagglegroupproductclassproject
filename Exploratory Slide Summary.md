@@ -26,7 +26,7 @@ Grabbing the data
 The train data set has 61878 rows and 95 columns. Here is a sample of a few rows and columns. The target column has 9 classifiers:  
 <small>
 <!-- html table generated in R 3.2.0 by xtable 1.7-4 package -->
-<!-- Wed Apr 22 22:38:58 2015 -->
+<!-- Wed Apr 22 22:49:14 2015 -->
 <table border=1>
 <tr> <th> id </th> <th> feat_1 </th> <th> feat_2 </th> <th> feat_3 </th> <th> feat_4 </th> <th> feat_5 </th> <th> feat_92 </th> <th> feat_93 </th> <th> target </th>  </tr>
   <tr> <td align="right">   1 </td> <td align="right">   1 </td> <td align="right">   0 </td> <td align="right">   0 </td> <td align="right">   0 </td> <td align="right">   0 </td> <td align="right">   0 </td> <td align="right">   0 </td> <td> Class_1 </td> </tr>
@@ -38,7 +38,7 @@ The train data set has 61878 rows and 95 columns. Here is a sample of a few rows
 The number of elements in each class is shown below.
 <small>   
 <!-- html table generated in R 3.2.0 by xtable 1.7-4 package -->
-<!-- Wed Apr 22 22:38:58 2015 -->
+<!-- Wed Apr 22 22:49:14 2015 -->
 <table border=1>
 <tr> <th> Class_1 </th> <th> Class_2 </th> <th> Class_3 </th> <th> Class_4 </th> <th> Class_5 </th> <th> Class_6 </th> <th> Class_7 </th> <th> Class_8 </th> <th> Class_9 </th>  </tr>
   <tr> <td align="right"> 1929 </td> <td align="right"> 16122 </td> <td align="right"> 8004 </td> <td align="right"> 2691 </td> <td align="right"> 2739 </td> <td align="right"> 14135 </td> <td align="right"> 2839 </td> <td align="right"> 8464 </td> <td align="right"> 4955 </td> </tr>
@@ -49,7 +49,7 @@ The number of elements in each class is shown below.
 
 Create data sample and munge
 ========================================================
-To get some data for inspection first create a random sample or all rows and first 28 plus last feature. This speeds up calculations. 
+To get some data for inspection first create a random sample of 4000 rows. This speeds up calculations. 
 
 
 
@@ -57,7 +57,6 @@ To get some data for inspection first create a random sample or all rows and fir
 
 ```r
 sample_rows <- sample(1:dim(train_data)[1], 4000)
-sample_columns<-c("id","feat_1", sample(feats, 28), "feat_93", "target")
 ```
 </small>
 > The sampled train_data has 4000 rows and 95 columns. 
@@ -80,7 +79,7 @@ long_train<-gather(train_data, feature, data, feat_1:feat_93)
 ```
 Here is a sample...   (the table has 372000 rows)
 <!-- html table generated in R 3.2.0 by xtable 1.7-4 package -->
-<!-- Wed Apr 22 22:38:59 2015 -->
+<!-- Wed Apr 22 22:49:15 2015 -->
 <table border=1>
 <tr> <th> id </th> <th> target </th> <th> feature </th> <th> data </th>  </tr>
   <tr> <td align="right"> 9869 </td> <td> Class_2 </td> <td> feat_1 </td> <td align="right">   0 </td> </tr>
@@ -153,7 +152,6 @@ Decision trees also appear to offer a good way to distinguish.
 
 <img src="Exploratory Slide Summary-figure/unnamed-chunk-16-1.png" title="plot of chunk unnamed-chunk-16" alt="plot of chunk unnamed-chunk-16" style="display: block; margin: auto;" />
 
-Tree Plot
+Tree Plot (pruned to cp=0.016)
 ===================================
-
 <img src="Exploratory Slide Summary-figure/unnamed-chunk-17-1.png" title="plot of chunk unnamed-chunk-17" alt="plot of chunk unnamed-chunk-17" style="display: block; margin: auto;" />

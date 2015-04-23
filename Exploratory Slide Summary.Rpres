@@ -52,9 +52,9 @@ print(xtable(t(table(train_data$target))), type="html",include.rownames = FALSE)
 
 Create data sample and munge
 ========================================================
-To get some data for inspection first create a random sample or all rows and first 28 plus last feature. This speeds up calculations. 
+To get some data for inspection first create a random sample of 4000 rows. This speeds up calculations. 
 
-```{r, echo=8}
+```{r, echo=7:8}
 sample_data<-TRUE
         
         set.seed(8675309)    
@@ -62,7 +62,7 @@ sample_data<-TRUE
                 feats<-colnames(train_data)
                 feats<-feats[3:93]
         
-                        sample_rows <- sample(1:dim(train_data)[1], 4000)
+                        sample_rows <- sample(1:dim(train_data)[1], 4000)  
                         #sample_columns<-c("id","feat_1", sample(feats, 28), "feat_93", "target")
         
                         train_data_T <- train_data[sample_rows, ]#sample_columns]
@@ -77,7 +77,6 @@ sample_data<-TRUE
 <small>
 ```{r, eval=FALSE}
 sample_rows <- sample(1:dim(train_data)[1], 4000)
-sample_columns<-c("id","feat_1", sample(feats, 28), "feat_93", "target")
 ```
 </small>
 > The sampled train_data has `r dd[1]` rows and `r dd[2]` columns. 
@@ -213,9 +212,8 @@ library(rpart)
         plotcp(fit)
 ```
 
-Tree Plot
+Tree Plot (pruned to cp=0.016)
 ===================================
-
 ```{r, fig.width=10, fig.height=8, fig.align="center", echo=FALSE}
         
 fit_cp<-prune(fit, cp=0.016)
