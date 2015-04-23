@@ -62,15 +62,15 @@
 
 ## INFORMATIONAL PLOTS
         
-        p<-ggplot(train_morph, aes(x=target, y=mean_data, color=feature))+geom_point()+ theme_bw()
-        p <- p + ggtitle("means of several features versus class")
-        p <- p + guides(color=guide_legend(nrow=10))
-        print(p)
+#         p<-ggplot(train_morph, aes(x=target, y=mean_data, color=feature))+geom_point()+ theme_bw()
+#         p <- p + ggtitle("means of several features versus class")
+#         p <- p + guides(color=guide_legend(nrow=10))
+#         print(p)
         
-        p<-ggplot(train_morph, aes(x=feature, y=mean_data, color=target))+geom_point(size=3)+ theme_bw()
-        p <- p + ggtitle("means of several features versus feature")
-        p <- p + theme(axis.text.x = element_text(angle=90))
-        print(p)
+#         p<-ggplot(train_morph, aes(x=feature, y=mean_data, color=target))+geom_point(size=3)+ theme_bw()
+#         p <- p + ggtitle("means of several features versus feature")
+#         p <- p + theme(axis.text.x = element_text(angle=90))
+#         print(p)
         
         p<-ggplot(train_morph, aes(x=target, y=z_stat, color=feature))+geom_point(size=3)+ theme_bw()
         p <- p + ggtitle("z_stat of several features versus class")
@@ -81,7 +81,9 @@
         train_class <- ddply(train_morph, c("target"), transform, max=max(z_stat) )
         train_class <- train_class[train_class$z_stat==train_class$max & !is.na(train_class$max),]
         
-        print(train_class)
+#        print(train_class)
         
         ## plot a histogram 
-        hist(train_class$z_stat)
+#        hist(train_class$z_stat)
+        
+        

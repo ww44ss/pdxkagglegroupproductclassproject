@@ -1,14 +1,23 @@
-Exploratory Summary
+Product Classification
 ========================================================
-author: Winston Saunders
-date: April 20 2015
 transition: rotate
-
+  
+  
+<br>  
+<br>  
+_Winston Saunders_   
+_April 22, 2015_  
+__Exploratory Summary__
+ 
 ```{r, echo=FALSE}
 setwd("/Users/winstonsaunders/Documents/pdxkagglegroupproductclassproject/")
 ```
+ 
+<small>`r R.version.string`</small>
 
 ***
+<br>  
+<br>  
 ![alt text](tactical.001.jpg)
 
 
@@ -24,30 +33,28 @@ Grabbing the data
         dd<-dim(train_data)
 
 ```
-The train data set has `r dd[1]` rows and `r dd[2]` columns. 
-
+The train data set has `r dd[1]` rows and `r dd[2]` columns. Here is a sample of a few rows and columns. The target column has 9 classifiers:  
 <small>
-
 ```{r, echo=FALSE, results='asis' }
 require(xtable)
 
 print(xtable(train_data[1:4, c(1:6, 93:95)]), type="html",include.rownames = FALSE)
 ```
-</small>
+</small>  
 The number of elements in each class is shown below.
-<small>
+<small>   
 ```{r, echo=FALSE, results='asis' }
 print(xtable(t(table(train_data$target))), type="html",include.rownames = FALSE)
 ```
-</small>
+</small> 
 
 
 
-Create a data sample
+Create data sample and munge
 ========================================================
-My computer can't handle the full matrix easily, so first step is to create a sample
+To get some data for inspection first create a random sample or all rows and first 28 plus last feature. This speeds up calculations. 
 
-```{r, echo=FALSE}
+```{r, echo=8}
 sample_data<-TRUE
         
         set.seed(8675309)    
@@ -56,9 +63,9 @@ sample_data<-TRUE
                 feats<-feats[3:93]
         
                         sample_rows <- sample(1:dim(train_data)[1], 4000)
-                        sample_columns<-c("id","feat_1", sample(feats, 28), "feat_93", "target")
+                        #sample_columns<-c("id","feat_1", sample(feats, 28), "feat_93", "target")
         
-                        train_data_T <- train_data[sample_rows, sample_columns]
+                        train_data_T <- train_data[sample_rows, ]#sample_columns]
                         dd<-dim(train_data_T)
         
                         ## assign subset to data frame name temporarily
@@ -67,43 +74,43 @@ sample_data<-TRUE
         }  
 ```
 
-The sampled train data set now has `r dd[1]` rows and `r dd[2]` columns. 
-
 <small>
+```{r, eval=FALSE}
+sample_rows <- sample(1:dim(train_data)[1], 4000)
+sample_columns<-c("id","feat_1", sample(feats, 28), "feat_93", "target")
+```
+</small>
+> The sampled train_data has `r dd[1]` rows and `r dd[2]` columns. 
+
+
 
 ```{r, echo=FALSE, results='asis' }
 require(xtable)
 
-print(xtable(train_data[1:4,c(1:7,dd[2]) ]), type="html",include.rownames = FALSE)
+#print(xtable(train_data[1:4,c(1:7,dd[2]) ]), type="html",include.rownames = FALSE)
 ```
 
-</small>
 
-
-Munging
-========================================================
-
-To get the data analyzable convert it to a "long" format.
+Munging (cont.)
+=========================================
+and then for plotting etc. convert it to a "long" format with each observation in one unique row.
 <small>
 ```{r}
-## Get required packages
+## Get packages
 require(plyr); require(ggplot2); require(tidyr)
-```
-
-
-```{r}
-## use tidyr package to munge the data into a long format 
+## munge data into long format 
 long_train<-gather(train_data, feature, data, feat_1:feat_93)
 ```
-
+Here is a sample...   (the table has `r dim(long_train)[1]` rows)
 ```{r, echo=FALSE, results='asis' }
 require(xtable)
 print(xtable(head(long_train)), type="html",include.rownames = FALSE)
 ```
-</small>
-
+</small>  
 First summary
 ============================================
+
+Let's look at the means and std deviations of the features by class....
 
 <small>
 ```{r}
@@ -111,16 +118,17 @@ First summary
 train_morph<-ddply(long_train, c("target", "feature"), summarize, mean_data = mean(data), sdev_data = sqrt(var(data)))
 
 
-## calculate z-stat
+## calculate inverse coeff of variation 
+## (which I will label as z_stat for later use)
 ## add small value to prevent overflow errors
 train_morph$z_stat<-train_morph$mean_data/(train_morph$sdev_data+0.00001)
 ```
 </small>
 
-Plot1
+Means and sd for all classes
 =========================================
 
-```{r, fig.width=12, fig.height=4, echo=FALSE}
+```{r, fig.width=12, fig.height=3, echo=FALSE}
  p<-ggplot(train_morph, aes(x=target, y=mean_data, color=feature))+geom_point(size=2)+ theme_bw()
 p <- p + ggtitle("means of several features versus class")
 p <- p + guides(color=guide_legend(nrow=10))
@@ -130,3 +138,81 @@ p <- p + theme(plot.title = element_text(size=rel(1.5)))
 print(p)
 ```
 
+
+```{r, fig.width=12, fig.height=3, echo=FALSE}
+p<-ggplot(train_morph, aes(x=target, y=z_stat, color=feature))+geom_point(size=3)+ theme_bw()
+        p <- p + ggtitle("mean/sd of several features versus class")
+        p <- p + guides(color=guide_legend(nrow=10))
+        print(p)
+```
+
+>some variation with class, but low mean/sd = 1/CV means noisy correlations!
+
+1/CV features for each class
+===================================
+
+```{r, fig.width=9, fig.height=6, fig.align="center",echo=FALSE}
+
+p <- ggplot(train_morph, aes(x=feature, y=z_stat, color=feature))+geom_point(size=3)+ theme_bw()
+        p <- p + ggtitle("1/CV of several features versus feature")
+        p <- p + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+        p <- p + facet_grid(target~.)
+        p <- p + guides(color=FALSE)
+        print(p)
+```
+
+This is beginning to look promising. We can see at least some variation between classes & features (though others are weak)
+
+
+
+Another look
+==================================
+
+Here the mean and 1/CV within a product class is plotted with color coded for the target class. 
+
+```{r, fig.width=9, fig.height=6, fig.align="center", echo=FALSE}
+
+p <- ggplot(train_morph, aes(x=mean_data, y=z_stat, color=target))+geom_point(size=5)+ theme_bw()
+        p <- p + ggtitle("1/CV versus mean of several features")
+        p <- p + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+        #p <- p + facet_wrap(~target, nrow=3)
+        p <- p + guides(color=guide_legend(nrow=10))
+        print(p)
+```
+
+
+Another look
+==================================
+
+If we require that 1/CV be above 0.5 (arbitrarily)
+```{r, fig.width=12, fig.height=6, fig.align="center",echo=FALSE}
+
+p <- ggplot(train_morph[train_morph$z_stat>0.5,], aes(x=mean_data, y=z_stat, color=feature))+geom_point(size=5)+ theme_bw()
+        p <- p + ggtitle("z_stat versus mean of several features")
+        p <- p + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+        p <- p + facet_wrap(~target, nrow=3)
+        p <- p + guides(color=guide_legend(nrow=10))
+        print(p)
+```
+
+>This starts to look selective  
+
+
+Decision Tree Class1 vs Class2 vs. Class 3
+===================================
+
+Decision trees also appear to offer a good way to distinguish.
+
+```{r, , fig.width=12, fig.height=6, fig.align="center",echo=FALSE}
+library(rpart)
+
+        fit<-rpart(target~.-target-id, method="class", 
+                   data=train_data[train_data$target=="Class_1"|train_data$target=="Class_2"|train_data$target=="Class_3",])
+
+        
+        plot(fit, uniform=TRUE, 
+             main="Classification Tree for Product Class_1 v. Class_2")
+        text(fit, use.n=TRUE, all=TRUE, cex=.9) 
+
+
+```
