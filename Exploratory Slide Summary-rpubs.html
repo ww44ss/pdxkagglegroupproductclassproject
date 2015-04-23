@@ -781,7 +781,7 @@ hljs.initHighlightingOnLoad();
 
 <!-- html table generated in R 3.2.0 by xtable 1.7-4 package -->
 
-<!-- Wed Apr 22 22:42:26 2015 -->
+<!-- Wed Apr 22 22:49:14 2015 -->
 
 <table border=1>
 <tr> <th> id </th> <th> feat_1 </th> <th> feat_2 </th> <th> feat_3 </th> <th> feat_4 </th> <th> feat_5 </th> <th> feat_92 </th> <th> feat_93 </th> <th> target </th>  </tr>
@@ -797,7 +797,7 @@ The number of elements in each class is shown below.
 
 <!-- html table generated in R 3.2.0 by xtable 1.7-4 package -->
 
-<!-- Wed Apr 22 22:42:26 2015 -->
+<!-- Wed Apr 22 22:49:14 2015 -->
 
 <table border=1>
 <tr> <th> Class_1 </th> <th> Class_2 </th> <th> Class_3 </th> <th> Class_4 </th> <th> Class_5 </th> <th> Class_6 </th> <th> Class_7 </th> <th> Class_8 </th> <th> Class_9 </th>  </tr>
@@ -812,12 +812,11 @@ The number of elements in each class is shown below.
 <section data-transition="default" data-transition-speed="default">
 <h3>Create data sample and munge</h3>
 <div class="slideContent" >
-<p>To get some data for inspection first create a random sample or all rows and first 28 plus last feature. This speeds up calculations. </p>
+<p>To get some data for inspection first create a random sample of 4000 rows. This speeds up calculations. </p>
 
 <p><small></p>
 
 <pre><code class="r">sample_rows &lt;- sample(1:dim(train_data)[1], 4000)
-sample_columns&lt;-c(&quot;id&quot;,&quot;feat_1&quot;, sample(feats, 28), &quot;feat_93&quot;, &quot;target&quot;)
 </code></pre>
 
 <p></small></p>
@@ -845,7 +844,7 @@ long_train&lt;-gather(train_data, feature, data, feat_1:feat_93)
 
 <!-- html table generated in R 3.2.0 by xtable 1.7-4 package -->
 
-<!-- Wed Apr 22 22:42:26 2015 -->
+<!-- Wed Apr 22 22:49:15 2015 -->
 
 <table border=1>
 <tr> <th> id </th> <th> target </th> <th> feature </th> <th> data </th>  </tr>
