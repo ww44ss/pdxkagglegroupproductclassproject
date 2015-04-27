@@ -12,7 +12,7 @@ __Exploratory Summary__
 ```{r, echo=FALSE}
 setwd("/Users/winstonsaunders/Documents/pdxkagglegroupproductclassproject/")
 ```
- 
+ <br>
 <small>`r R.version.string`</small>
 
 ***
@@ -50,9 +50,9 @@ print(xtable(t(table(train_data$target))), type="html",include.rownames = FALSE)
 
 
 
-Create data sample and munge
+Create data sample
 ========================================================
-To get some data for inspection first create a random sample of 4000 rows. This speeds up calculations. 
+To get some data for inspection first create a random sample of 15000 rows. This speeds up calculations. 
 
 ```{r, echo=7:8}
 sample_data<-TRUE
@@ -62,7 +62,7 @@ sample_data<-TRUE
                 feats<-colnames(train_data)
                 feats<-feats[3:93]
         
-                        sample_rows <- sample(1:dim(train_data)[1], 4000)  
+                        sample_rows <- sample(1:dim(train_data)[1], 15000)  
                         #sample_columns<-c("id","feat_1", sample(feats, 28), "feat_93", "target")
         
                         train_data_T <- train_data[sample_rows, ]#sample_columns]
@@ -89,10 +89,51 @@ require(xtable)
 #print(xtable(train_data[1:4,c(1:7,dd[2]) ]), type="html",include.rownames = FALSE)
 ```
 
+Inspect
+======================================
 
-Munging (cont.)
+What does a specific feat look like? Look at table of values for feat\_60 for Class\_6
+
+
+```{r, echo=FALSE, results='asis'}
+f_6_table<-train_data[train_data$target=="Class_6", "feat_60"]
+
+
+require(xtable)
+
+print(xtable(as.data.frame(f_6_table)), type="html",include.rownames = TRUE)
+```
+***
+```{r, echo=FALSE}
+
+
+hist(f_6_table)
+
+```
+
+...and for class\_7
+===============================
+
+```{r, echo=FALSE, results='asis'}
+
+f_7_table<-train_data[train_data$target=="Class_7", "feat_60"]
+print(str(f_7_table))
+print(table(f_7_table))
+
+print(xtable(as.data.frame(f_7_table)), type="html",include.rownames = TRUE)
+
+```
+***
+```{r, echo=FALSE}
+
+hist(f_7_table)
+        
+```
+
+
+Munging
 =========================================
-and then for plotting etc. convert it to a "long" format with each observation in one unique row.
+For plotting etc. convert data to a "long" format with each observation in one unique row.
 <small>
 ```{r}
 ## Get packages
@@ -121,10 +162,23 @@ train_morph<-ddply(long_train, c("target", "feature"), summarize, mean_data = me
 ## (which I will label as z_stat for later use)
 ## add small value to prevent overflow errors
 train_morph$z_stat<-train_morph$mean_data/(train_morph$sdev_data+0.00001)
+train_morph$CV<-(train_morph$sdev_data)/(train_morph$mean_data+0.001)
+
 ```
 </small>
 
-Means and sd for all classes
+Train_Morph
+======================================
+
+```{r,results='asis' }
+print(xtable(train_morph[1:6,]), type="html",include.rownames = FALSE)
+
+```
+
+
+
+
+Means and CV for all classes
 =========================================
 
 ```{r, fig.width=12, fig.height=3, echo=FALSE}
@@ -137,9 +191,10 @@ p <- p + theme(plot.title = element_text(size=rel(1.5)))
 print(p)
 ```
 
+Here is the CV = sd/mean
 
 ```{r, fig.width=12, fig.height=3, echo=FALSE}
-p<-ggplot(train_morph, aes(x=target, y=z_stat, color=feature))+geom_point(size=3)+ theme_bw()
+p<-ggplot(train_morph, aes(x=target, y=CV, color=feature))+geom_point(size=3)+ theme_bw()
         p <- p + ggtitle("mean/sd of several features versus class")
         p <- p + guides(color=guide_legend(nrow=10))
         print(p)
