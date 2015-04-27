@@ -74,11 +74,6 @@ sample_data<-TRUE
         }  
 ```
 
-<small>
-```{r, eval=FALSE}
-sample_rows <- sample(1:dim(train_data)[1], 4000)
-```
-</small>
 > The sampled train_data has `r dd[1]` rows and `r dd[2]` columns. 
 
 
@@ -97,43 +92,22 @@ What does a specific feat look like? Look at table of values for feat\_60 for Cl
 
 ```{r, echo=FALSE, results='asis'}
 f_6_table<-train_data[train_data$target=="Class_6", "feat_60"]
+hist(f_6_table, breaks=30)
 
-
-require(xtable)
-
-print(xtable(as.data.frame(f_6_table)), type="html",include.rownames = TRUE)
 ```
 ***
-```{r, echo=FALSE}
-
-
-hist(f_6_table)
-
-```
-
-...and for class\_7
-===============================
 
 ```{r, echo=FALSE, results='asis'}
 
 f_7_table<-train_data[train_data$target=="Class_7", "feat_60"]
-print(str(f_7_table))
-print(table(f_7_table))
-
-print(xtable(as.data.frame(f_7_table)), type="html",include.rownames = TRUE)
-
-```
-***
-```{r, echo=FALSE}
-
-hist(f_7_table)
+hist(f_7_table, breaks=30)
         
 ```
 
 
 Munging
 =========================================
-For plotting etc. convert data to a "long" format with each observation in one unique row.
+For plotting etc. convert data to a "long" format with each observation, characterized by a target class and feature, in one unique row.
 <small>
 ```{r}
 ## Get packages
@@ -141,10 +115,13 @@ require(plyr); require(ggplot2); require(tidyr)
 ## munge data into long format 
 long_train<-gather(train_data, feature, data, feat_1:feat_93)
 ```
+
+Note that the dimension of this new data frame `r dim(long_train)[1]` is equal to `r dim(train_data)[1]` X (`r dim(train_data)[2]` - 2).
+
 Here is a sample...   (the table has `r dim(long_train)[1]` rows)
 ```{r, echo=FALSE, results='asis' }
 require(xtable)
-print(xtable(head(long_train)), type="html",include.rownames = FALSE)
+print(xtable(head(long_train,4)), type="html",include.rownames = FALSE)
 ```
 </small>  
 First summary
@@ -217,6 +194,81 @@ p <- ggplot(train_morph, aes(x=feature, y=z_stat, color=feature))+geom_point(siz
 
 This is beginning to look promising. We can see at least some variation between classes & features (though others are weak)
 
+</small>  
+Second Summary
+============================================
+
+Let's get rid of all the data that is <= 1.
+
+```{r}
+long_train_original<-long_train
+long_train<-long_train[long_train$data>1,]
+```
+
+<small>
+```{r}
+## use ddply to get means and standard deviations
+train_morph<-ddply(long_train, c("target", "feature"), summarize, mean_data = mean(data), sdev_data = sqrt(var(data)))
+
+
+## calculate inverse coeff of variation 
+## (which I will label as z_stat for later use)
+## add small value to prevent overflow errors
+train_morph$z_stat<-train_morph$mean_data/(train_morph$sdev_data+0.00001)
+train_morph$CV<-(train_morph$sdev_data)/(train_morph$mean_data+0.001)
+
+```
+</small>
+
+Train_Morph the new data
+======================================
+
+```{r,results='asis' }
+print(xtable(train_morph[1:6,]), type="html",include.rownames = FALSE)
+
+```
+
+
+
+
+Means and CV for all classes
+=========================================
+
+```{r, fig.width=12, fig.height=3, echo=FALSE}
+ p<-ggplot(train_morph, aes(x=target, y=mean_data, color=feature))+geom_point(size=2)+ theme_bw()
+p <- p + ggtitle("means of several features versus class")
+p <- p + guides(color=guide_legend(nrow=10))
+p <- p + theme(axis.text.x = element_text(size=rel(1.5)), axis.text.y = element_text(size=rel(1.5)))
+p <- p + theme(axis.title.x = element_text(size=rel(1.5)), axis.title.y = element_text(size=rel(1.5)))
+p <- p + theme(plot.title = element_text(size=rel(1.5)))
+print(p)
+```
+
+Here is the CV = sd/mean
+
+```{r, fig.width=12, fig.height=3, echo=FALSE}
+p<-ggplot(train_morph, aes(x=target, y=CV, color=feature))+geom_point(size=3)+ theme_bw()
+        p <- p + ggtitle("mean/sd of several features versus class")
+        p <- p + guides(color=guide_legend(nrow=10))
+        print(p)
+```
+
+>some variation with class, but low mean/sd = 1/CV means noisy correlations!
+
+1/CV features for each class
+===================================
+
+```{r, fig.width=9, fig.height=6, fig.align="center",echo=FALSE}
+
+p <- ggplot(train_morph, aes(x=feature, y=z_stat, color=feature))+geom_point(size=3)+ theme_bw()
+        p <- p + ggtitle("1/CV of several features versus feature")
+        p <- p + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+        p <- p + facet_grid(target~.)
+        p <- p + guides(color=FALSE)
+        print(p)
+```
+
+This is beginning to look promising. We can see at least some variation between classes & features (though others are weak)
 
 
 Another look
