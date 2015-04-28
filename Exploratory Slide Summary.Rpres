@@ -198,15 +198,17 @@ This is beginning to look promising. We can see at least some variation between 
 Second Summary
 ============================================
 
-Let's get rid of all the data that is <= 1.
+Let's get rid of all the data that is <= 0.
 
 ```{r}
 long_train_original<-long_train
-long_train<-long_train[long_train$data>1,]
+long_train<-long_train[long_train$data>0,]
 ```
 
+the size of the original matrix was `r dim(long_train_original)[1]` and the size of the new matrix is `r dim(long_train)[1]`.
+
 <small>
-```{r}
+```{r, echo=FALSE}
 ## use ddply to get means and standard deviations
 train_morph<-ddply(long_train, c("target", "feature"), summarize, mean_data = mean(data), sdev_data = sqrt(var(data)))
 
