@@ -33,7 +33,9 @@ Grabbing the data
         dd<-dim(train_data)
 
 ```
-The train data set has `r dd[1]` rows and `r dd[2]` columns. Here is a sample of a few rows and columns. The target column has 9 classifiers:  
+
+Data are stored locally on my computer in the directory `r print(directory)`.
+The train data set has `r dd[1]` rows and `r dd[2]` columns. Here is a sample of a few rows and columns. The target column has 9 classifiers.  
 <small>
 ```{r, echo=FALSE, results='asis' }
 require(xtable)
@@ -41,7 +43,7 @@ require(xtable)
 print(xtable(train_data[1:4, c(1:6, 93:95)]), type="html",include.rownames = FALSE)
 ```
 </small>  
-The number of elements in each class is shown below.
+The number of elements in each class is not uniform. 
 <small>   
 ```{r, echo=FALSE, results='asis' }
 print(xtable(t(table(train_data$target))), type="html",include.rownames = FALSE)
@@ -52,9 +54,9 @@ print(xtable(t(table(train_data$target))), type="html",include.rownames = FALSE)
 
 Create data sample
 ========================================================
-To get some data for inspection first create a random sample of 15000 rows. This speeds up calculations. 
+To get some data for inspection first create a smaller random sample of rows. This just speeds up calculations. 
 
-```{r, echo=7:8}
+```{r, echo=FALSE}
 sample_data<-TRUE
         
         set.seed(8675309)    
@@ -76,19 +78,16 @@ sample_data<-TRUE
 
 > The sampled train_data has `r dd[1]` rows and `r dd[2]` columns. 
 
-
-
 ```{r, echo=FALSE, results='asis' }
 require(xtable)
 
-#print(xtable(train_data[1:4,c(1:7,dd[2]) ]), type="html",include.rownames = FALSE)
+print(xtable(train_data[1:4,c(1:7,dd[2]) ]), type="html",include.rownames = FALSE)
 ```
 
-Inspect
+Histograms of Features
 ======================================
 
-What does a specific feat look like? Look at table of values for feat\_60 for Class\_6
-
+What does a specific feat look like? Look at histogram of values for feat\_60 for Class\_6
 
 ```{r, echo=FALSE, results='asis'}
 f_6_table<-train_data[train_data$target=="Class_6", "feat_60"]
@@ -133,18 +132,14 @@ Let's look at the means and std deviations of the features by class....
 ```{r}
 ## use ddply to get means and standard deviations
 train_morph<-ddply(long_train, c("target", "feature"), summarize, mean_data = mean(data), sdev_data = sqrt(var(data)))
-
-
-## calculate inverse coeff of variation 
-## (which I will label as z_stat for later use)
-## add small value to prevent overflow errors
-train_morph$z_stat<-train_morph$mean_data/(train_morph$sdev_data+0.00001)
+## calculate coeff of variation (CV)
+## adding small value to prevent overflow errors
 train_morph$CV<-(train_morph$sdev_data)/(train_morph$mean_data+0.001)
 
 ```
 </small>
 
-Train_Morph
+Inspect train_morph
 ======================================
 
 ```{r,results='asis' }
@@ -152,10 +147,7 @@ print(xtable(train_morph[1:6,]), type="html",include.rownames = FALSE)
 
 ```
 
-
-
-
-Means and CV for all classes
+Let's inspect
 =========================================
 
 ```{r, fig.width=12, fig.height=3, echo=FALSE}
