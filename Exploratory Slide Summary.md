@@ -28,7 +28,7 @@ Data are stored locally on my computer in the directory .
 The train data set has 61878 rows and 95 columns. Here is a sample of a few rows and columns. The target column has 9 classifiers.  
 <small>
 <!-- html table generated in R 3.2.0 by xtable 1.7-4 package -->
-<!-- Thu Apr 30 17:10:51 2015 -->
+<!-- Thu Apr 30 17:16:34 2015 -->
 <table border=1>
 <tr> <th> id </th> <th> feat_1 </th> <th> feat_2 </th> <th> feat_3 </th> <th> feat_4 </th> <th> feat_5 </th> <th> feat_92 </th> <th> feat_93 </th> <th> target </th>  </tr>
   <tr> <td align="right">   1 </td> <td align="right">   1 </td> <td align="right">   0 </td> <td align="right">   0 </td> <td align="right">   0 </td> <td align="right">   0 </td> <td align="right">   0 </td> <td align="right">   0 </td> <td> Class_1 </td> </tr>
@@ -40,7 +40,7 @@ The train data set has 61878 rows and 95 columns. Here is a sample of a few rows
 The number of elements in each class is not uniform. 
 <small>   
 <!-- html table generated in R 3.2.0 by xtable 1.7-4 package -->
-<!-- Thu Apr 30 17:10:51 2015 -->
+<!-- Thu Apr 30 17:16:34 2015 -->
 <table border=1>
 <tr> <th> Class_1 </th> <th> Class_2 </th> <th> Class_3 </th> <th> Class_4 </th> <th> Class_5 </th> <th> Class_6 </th> <th> Class_7 </th> <th> Class_8 </th> <th> Class_9 </th>  </tr>
   <tr> <td align="right"> 1929 </td> <td align="right"> 16122 </td> <td align="right"> 8004 </td> <td align="right"> 2691 </td> <td align="right"> 2739 </td> <td align="right"> 14135 </td> <td align="right"> 2839 </td> <td align="right"> 8464 </td> <td align="right"> 4955 </td> </tr>
@@ -58,7 +58,7 @@ To get some data for inspection first create a smaller random sample of rows. Th
 > The sampled train_data has 15000 rows and 95 columns. 
 
 <!-- html table generated in R 3.2.0 by xtable 1.7-4 package -->
-<!-- Thu Apr 30 17:10:51 2015 -->
+<!-- Thu Apr 30 17:16:34 2015 -->
 <table border=1>
 <tr> <th> id </th> <th> feat_1 </th> <th> feat_2 </th> <th> feat_3 </th> <th> feat_4 </th> <th> feat_5 </th> <th> feat_6 </th> <th> target </th>  </tr>
   <tr> <td align="right"> 9869 </td> <td align="right">   0 </td> <td align="right">   0 </td> <td align="right">   0 </td> <td align="right">   0 </td> <td align="right">   0 </td> <td align="right">   0 </td> <td> Class_2 </td> </tr>
@@ -94,7 +94,7 @@ Note that the dimension of this new data frame 1395000 is equal to 15000 X (95 -
 
 Here is a sample...   (the table has 1395000 rows)
 <!-- html table generated in R 3.2.0 by xtable 1.7-4 package -->
-<!-- Thu Apr 30 17:10:52 2015 -->
+<!-- Thu Apr 30 17:16:35 2015 -->
 <table border=1>
 <tr> <th> id </th> <th> target </th> <th> feature </th> <th> data </th>  </tr>
   <tr> <td align="right"> 9869 </td> <td> Class_2 </td> <td> feat_1 </td> <td align="right">   0 </td> </tr>
@@ -128,7 +128,7 @@ print(xtable(train_morph[1:6,]), type="html",include.rownames = FALSE)
 ```
 
 <!-- html table generated in R 3.2.0 by xtable 1.7-4 package -->
-<!-- Thu Apr 30 17:10:53 2015 -->
+<!-- Thu Apr 30 17:16:37 2015 -->
 <table border=1>
 <tr> <th> target </th> <th> feature </th> <th> mean_data </th> <th> sdev_data </th> <th> CV </th>  </tr>
   <tr> <td> Class_1 </td> <td> feat_1 </td> <td align="right"> 0.44 </td> <td align="right"> 1.05 </td> <td align="right"> 2.37 </td> </tr>
@@ -174,7 +174,7 @@ the size of the original matrix was 1395000 and the size of the new matrix is 28
 
 
 <!-- html table generated in R 3.2.0 by xtable 1.7-4 package -->
-<!-- Thu Apr 30 17:10:56 2015 -->
+<!-- Thu Apr 30 17:16:39 2015 -->
 <table border=1>
 <tr> <th> target </th> <th> feature </th> <th> mean_data </th> <th> sdev_data </th> <th> CV </th>  </tr>
   <tr> <td> Class_1 </td> <td> feat_1 </td> <td align="right"> 1.79 </td> <td align="right"> 1.43 </td> <td align="right"> 0.80 </td> </tr>
@@ -218,15 +218,40 @@ Decision Tree Class1 vs Class2
 
 Decision trees also appear to offer a good way to distinguish.
 
+<img src="Exploratory Slide Summary-figure/unnamed-chunk-23-1.png" title="plot of chunk unnamed-chunk-23" alt="plot of chunk unnamed-chunk-23" style="display: block; margin: auto;" />
+
+Tree Plot (pruned to cp=0.02)
+===================================
+
+This shows just a few features (e.g. 17, 78, and 84) can do a pretty good job discriminating between Class\_1 and Class\_2. 
+
+
+<img src="Exploratory Slide Summary-figure/unnamed-chunk-24-1.png" title="plot of chunk unnamed-chunk-24" alt="plot of chunk unnamed-chunk-24" style="display: block; margin: auto;" />
+
+
+Decision Tree Class1 vs Class6 
+===================================
+
+Here's a look at a different pairing (Class\_1 and CLass\_6)
+
+<img src="Exploratory Slide Summary-figure/unnamed-chunk-25-1.png" title="plot of chunk unnamed-chunk-25" alt="plot of chunk unnamed-chunk-25" style="display: block; margin: auto;" />
+
+Tree Plot (pruned to cp=0.02)
+===================================
+
+This shows many more features (e.g. 8, 78, 6, &c.) are needed to discriminate between Class\_1 and Class\_6. Though feat\_78 is common between the two analyses.
+
+
+<img src="Exploratory Slide Summary-figure/unnamed-chunk-26-1.png" title="plot of chunk unnamed-chunk-26" alt="plot of chunk unnamed-chunk-26" style="display: block; margin: auto;" />
+
+Next Steps
+=========================================
+
+Examine more pairwise trees.  
+Understand if the variable _values_ contribute information.   
+Run generic random forest as benchmark.  
+
+>Cheers!
 
 
 
-
-
-
-
-
-
-```
-Error in is.data.frame(data) : object 'train_data_nz' not found
-```

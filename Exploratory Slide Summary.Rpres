@@ -289,8 +289,9 @@ Decision trees also appear to offer a good way to distinguish.
 library(rpart)
 library(tree)
 
+
         fit<-rpart(target~.-target-id, method="class", 
-                   data=train_data_nz[train_data_nz$target=="Class_1"|train_data_nz$target=="Class_2",])
+                   data=train_data[train_data$target=="Class_1"|train_data$target=="Class_2",])
 
 
         plotcp(fit)
