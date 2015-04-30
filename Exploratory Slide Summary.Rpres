@@ -150,10 +150,11 @@ print(xtable(train_morph[1:6,]), type="html",include.rownames = FALSE)
 Let's inspect
 =========================================
 
-```{r, fig.width=12, fig.height=3, echo=FALSE}
+```{r, fig.width=8, fig.height=3, echo=FALSE, fig.align="center"}
  p<-ggplot(train_morph, aes(x=target, y=mean_data, color=feature))+geom_point(size=2)+ theme_bw()
 p <- p + ggtitle("means of several features versus class")
-p <- p + guides(color=guide_legend(nrow=10))
+p<- p + theme(legend.position="none")
+#p <- p + guides(color=guide_legend(nrow=10))
 p <- p + theme(axis.text.x = element_text(size=rel(1.5)), axis.text.y = element_text(size=rel(1.5)))
 p <- p + theme(axis.title.x = element_text(size=rel(1.5)), axis.title.y = element_text(size=rel(1.5)))
 p <- p + theme(plot.title = element_text(size=rel(1.5)))
@@ -162,76 +163,72 @@ print(p)
 
 Here is the CV = sd/mean
 
-```{r, fig.width=12, fig.height=3, echo=FALSE}
+```{r, fig.width=8, fig.height=3, echo=FALSE, fig.align="center"}
 p<-ggplot(train_morph, aes(x=target, y=CV, color=feature))+geom_point(size=3)+ theme_bw()
-        p <- p + ggtitle("mean/sd of several features versus class")
-        p <- p + guides(color=guide_legend(nrow=10))
+        p <- p + ggtitle("CV = sd/mean of several features versus class")
+        p<- p + theme(legend.position="none")
+        #p <- p + guides(color=guide_legend(nrow=10))
         print(p)
 ```
 
->some variation with class, but low mean/sd = 1/CV means noisy correlations!
+>some variation with class, but high CV means noisy correlations!
 
-1/CV features for each class
+Another look at the data: CV for each class
 ===================================
 
-```{r, fig.width=9, fig.height=6, fig.align="center",echo=FALSE}
+```{r, fig.width=11, fig.height=6, fig.align="center",echo=FALSE}
 
-p <- ggplot(train_morph, aes(x=feature, y=z_stat, color=feature))+geom_point(size=3)+ theme_bw()
-        p <- p + ggtitle("1/CV of several features versus feature")
+p <- ggplot(train_morph, aes(x=feature, y=CV, color=feature))+geom_point(size=3)+ theme_bw()
+        p <- p + ggtitle("CV of several features versus feature")
         p <- p + theme(axis.text.x = element_text(angle = 90, hjust = 1))
         p <- p + facet_grid(target~.)
-        p <- p + guides(color=FALSE)
+        p<- p + theme(legend.position="none")
+        #p <- p + guides(color=FALSE)
         print(p)
 ```
 
-This is beginning to look promising. We can see at least some variation between classes & features (though others are weak)
+This is beginning to look promising. We can see some variation between classes & features, but overall CV is very high and needs to be reduced.
+
 
 </small>  
-Second Summary
+Reducing CV
 ============================================
 
-Let's get rid of all the data that is <= 0.
+Let's try getting rid of all the data that = 0 (assume 0 is a non-entry)
 
 ```{r}
-long_train_original<-long_train
-long_train<-long_train[long_train$data>0,]
+long_train_nz<-long_train[long_train$data>0,]
 ```
 
-the size of the original matrix was `r dim(long_train_original)[1]` and the size of the new matrix is `r dim(long_train)[1]`.
+the size of the original matrix was `r dim(long_train)[1]` and the size of the new matrix is `r dim(long_train_nz)[1]`. So there were a substantial number of zeros!
 
-<small>
 ```{r, echo=FALSE}
 ## use ddply to get means and standard deviations
-train_morph<-ddply(long_train, c("target", "feature"), summarize, mean_data = mean(data), sdev_data = sqrt(var(data)))
+train_morph_nz<-ddply(long_train_nz, c("target", "feature"), summarize, mean_data = mean(data), sdev_data = sqrt(var(data)))
 
 
 ## calculate inverse coeff of variation 
 ## (which I will label as z_stat for later use)
 ## add small value to prevent overflow errors
-train_morph$z_stat<-train_morph$mean_data/(train_morph$sdev_data+0.00001)
-train_morph$CV<-(train_morph$sdev_data)/(train_morph$mean_data+0.001)
-
-```
-</small>
-
-Train_Morph the new data
-======================================
-
-```{r,results='asis' }
-print(xtable(train_morph[1:6,]), type="html",include.rownames = FALSE)
+train_morph_nz$CV<-(train_morph_nz$sdev_data)/(train_morph_nz$mean_data+0.001)
 
 ```
 
+```{r,echo=FALSE, results='asis' }
+print(xtable(train_morph_nz[1:4,]), type="html",include.rownames = FALSE)
 
+```
 
+>Note the substantial reduction in CV
 
 Means and CV for all classes
 =========================================
 
-```{r, fig.width=12, fig.height=3, echo=FALSE}
- p<-ggplot(train_morph, aes(x=target, y=mean_data, color=feature))+geom_point(size=2)+ theme_bw()
+```{r, fig.width=8, fig.height=3, echo=FALSE}
+ p<-ggplot(train_morph_nz, aes(x=target, y=mean_data, color=feature))+geom_point(size=3)+ theme_bw()
 p <- p + ggtitle("means of several features versus class")
-p <- p + guides(color=guide_legend(nrow=10))
+p<- p + theme(legend.position="none")
+#p <- p + guides(color=guide_legend(nrow=10))
 p <- p + theme(axis.text.x = element_text(size=rel(1.5)), axis.text.y = element_text(size=rel(1.5)))
 p <- p + theme(axis.title.x = element_text(size=rel(1.5)), axis.title.y = element_text(size=rel(1.5)))
 p <- p + theme(plot.title = element_text(size=rel(1.5)))
@@ -240,25 +237,26 @@ print(p)
 
 Here is the CV = sd/mean
 
-```{r, fig.width=12, fig.height=3, echo=FALSE}
-p<-ggplot(train_morph, aes(x=target, y=CV, color=feature))+geom_point(size=3)+ theme_bw()
+```{r, fig.width=8, fig.height=3, echo=FALSE}
+p<-ggplot(train_morph_nz, aes(x=target, y=CV, color=feature))+geom_point(size=3)+ theme_bw()
         p <- p + ggtitle("mean/sd of several features versus class")
-        p <- p + guides(color=guide_legend(nrow=10))
+        p<- p + theme(legend.position="none")
+#        p <- p + guides(color=guide_legend(nrow=10))
         print(p)
 ```
 
->some variation with class, but low mean/sd = 1/CV means noisy correlations!
+>some variation with class, but reduced CV means less noisy correlations!
 
-1/CV features for each class
+CV features for each class
 ===================================
 
-```{r, fig.width=9, fig.height=6, fig.align="center",echo=FALSE}
+```{r, fig.width=11, fig.height=6, fig.align="center",echo=FALSE}
 
-p <- ggplot(train_morph, aes(x=feature, y=z_stat, color=feature))+geom_point(size=3)+ theme_bw()
+p <- ggplot(train_morph_nz, aes(x=feature, y=CV, color=feature))+geom_point(size=3)+ theme_bw()
         p <- p + ggtitle("1/CV of several features versus feature")
         p <- p + theme(axis.text.x = element_text(angle = 90, hjust = 1))
         p <- p + facet_grid(target~.)
-        p <- p + guides(color=FALSE)
+        p<- p + theme(legend.position="none")
         print(p)
 ```
 
@@ -268,34 +266,18 @@ This is beginning to look promising. We can see at least some variation between 
 Another look
 ==================================
 
-Here the mean and 1/CV within a product class is plotted with color coded for the target class. 
+The non-zero data with CV < 1.5 shows fair distinguishing of classes.
 
-```{r, fig.width=9, fig.height=6, fig.align="center", echo=FALSE}
+```{r, fig.width=11, fig.height=6, fig.align="center", echo=FALSE}
 
-p <- ggplot(train_morph, aes(x=mean_data, y=z_stat, color=target))+geom_point(size=5)+ theme_bw()
-        p <- p + ggtitle("1/CV versus mean of several features")
+p <- ggplot(train_morph_nz[train_morph_nz$CV<1.5,], aes(x=mean_data, y=CV, color=target))+geom_point(size=5)+ theme_bw()
+        p <- p + ggtitle("CV versus mean of several features")
         p <- p + theme(axis.text.x = element_text(angle = 90, hjust = 1))
         #p <- p + facet_wrap(~target, nrow=3)
         p <- p + guides(color=guide_legend(nrow=10))
         print(p)
 ```
 
-
-Another look
-==================================
-
-If we require that 1/CV be above 0.5 (arbitrarily)
-```{r, fig.width=12, fig.height=6, fig.align="center",echo=FALSE}
-
-p <- ggplot(train_morph[train_morph$z_stat>0.5,], aes(x=mean_data, y=z_stat, color=feature))+geom_point(size=5)+ theme_bw()
-        p <- p + ggtitle("z_stat versus mean of several features")
-        p <- p + theme(axis.text.x = element_text(angle = 90, hjust = 1))
-        p <- p + facet_wrap(~target, nrow=3)
-        p <- p + guides(color=guide_legend(nrow=10))
-        print(p)
-```
-
->This starts to look selective  
 
 
 Decision Tree Class1 vs Class2 
@@ -305,9 +287,10 @@ Decision trees also appear to offer a good way to distinguish.
 
 ```{r, fig.width=12, fig.height=6, fig.align="center",echo=FALSE}
 library(rpart)
+library(tree)
 
         fit<-rpart(target~.-target-id, method="class", 
-                   data=train_data[train_data$target=="Class_1"|train_data$target=="Class_2",])
+                   data=train_data_nz[train_data_nz$target=="Class_1"|train_data_nz$target=="Class_2",])
 
 
         plotcp(fit)
