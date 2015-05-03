@@ -334,18 +334,16 @@ tree_pred<-predict(tree_fit, data=td, type="class")
 Can we do tree on long_data?
 ===========================================
 
-```{r}
+
+This does not run. 
+```{r, eval=FALSE}
 long_tree_fit <- tree(target~.-id-target, data=long_train_nz)
 summary(long_tree_fit)
 
 
 ```
 
-Plot of Long_Tree
-=============================
-```{r, fig.width=10, fig.height=6, fig.align="center"}
-plot(long_tree_fit, pretty=0);text(tree_fit)
-```
+
 
 
 
