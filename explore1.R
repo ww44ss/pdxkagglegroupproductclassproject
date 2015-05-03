@@ -34,10 +34,12 @@
                 feats<-colnames(train_data)
                 feats<-feats[3:93]
         
-                        sample_rows <- sample(1:dim(train_data)[1], 4000)
+                        sample_rows <- sample(1:dim(train_data)[1], 15000)
                         #sample_columns<-c("id","feat_1", sample(feats, 28), "feat_93", "target")
         
                         train_data_T <- train_data[sample_rows, ] #sample_columns]
+                        
+                        test_data<-train_data[-sample_rows,]
                         dim(train_data_T)
         
                         ## assign subset to data frame name temporarily
@@ -66,7 +68,7 @@
         
         p<-ggplot(train_morph, aes(x=target, y=mean_data, color=feature))+geom_point()+ theme_bw()
         p <- p + ggtitle("means of several features versus class")
-        p <- p + guides(color=guide_legend(nrow=10))
+        p <- p + guides(color=guide_legend(nrow=15))
         print(p)
         
 ## TRY GETTING RID OF ZERO DATA
@@ -86,43 +88,83 @@
         
         p<-ggplot(train_morph_nz, aes(x=target, y=mean_data, color=feature))+geom_point()+ theme_bw()
         p <- p + ggtitle("means of features nz versus class")
-        p <- p + guides(color=guide_legend(nrow=10))
+        p <- p + guides(color=guide_legend(nrow=20))
         print(p)
         
         
-#         p<-ggplot(train_morph, aes(x=feature, y=mean_data, color=target))+geom_point(size=3)+ theme_bw()
-#         p <- p + ggtitle("means of several features versus feature")
-#         p <- p + theme(axis.text.x = element_text(angle=90))
-#         print(p)
+        ## plot the coefficient of variation (CV)
         
-#         p<-ggplot(train_morph, aes(x=target, y=z_stat, color=feature))+geom_point(size=3)+ theme_bw()
-#         p <- p + ggtitle("z_stat of several features versus class")
-#         p <- p + guides(color=guide_legend(nrow=10))
-#         print(p)
-#                 
-#         ## used information from here: http://www.computerworld.com/article/2486425/business-intelligence-4-data-wrangling-tasks-in-r-for-advanced-beginners.html
-#         train_class <- ddply(train_morph, c("target"), transform, max=max(z_stat) )
-#         train_class <- train_class[train_class$z_stat==train_class$max & !is.na(train_class$max),]
-#         
-# #        print(train_class)
-#         
-#         ## plot a histogram 
-# #        hist(train_class$z_stat)
-# ##
-# ##        
-# ##        
-# ##       TREES
-# ##
-# ##
-#         library(rpart)
-#         ###
-#         fit<-rpart(target~.-target-id, method="class", 
-#                    data=train_data[train_data$target=="Class_1"|train_data$target=="Class_2",])
-#         
-#         plot(fit)
-#         
-#         
-#         
-#         plot(fit, uniform=TRUE, 
-#              main="Classification Tree for Product Class")
-#         text(fit, use.n=TRUE, all=TRUE, cex=.5)  
+        p<-ggplot(train_morph_nz, aes(x=target, y=CV, color=feature))+geom_point()+ theme_bw()
+        p <- p + ggtitle("CV features nz versus class")
+        p <- p + guides(color=guide_legend(nrow=20))
+        print(p)
+        
+        p<-ggplot(train_morph, aes(x=target, y=CV, color=feature))+geom_point()+ theme_bw()
+        p <- p + ggtitle("CV features nz versus class")
+        p <- p + guides(color=guide_legend(nrow=15))
+        print(p)
+        
+        ## can see quite a difference
+        
+## TREE MODEL
+        
+## USE {rpart} PACKAGE
+        
+        library(rpart)
+        ###
+        fit<-rpart(target~.-target-id, method="class", 
+                   data=train_data)
+        
+        plot(fit)
+        
+
+        plot(fit, uniform=TRUE, 
+             main="Classification Tree for Product Class")
+        text(fit, use.n=TRUE, all=TRUE, cex=.5)  
+
+## USE {tree} PACKAGE
+        
+        library(tree)
+        
+        train_control<-tree.control(nobs=dim(train_data)[1], mindev=0.01/2)
+        
+        train_control
+        
+        tree_fit<-tree(target~.-id, method="class", 
+                       data=train_data, control = train_control)
+        
+        ## summary of the tree
+        
+        summary(tree_fit)
+        
+        ## plot and label
+        plot(tree_fit)
+        text(tree_fit, pretty=0)
+        
+        ## make sure the test data is there 
+        #head(test_data)
+
+        td<-test_data
+        td$id<-NULL
+        
+        predicted_classification<-predict(tree_fit, data=td, type="class")
+        
+        error = mean(predicted_classification != test_data$target)
+        
+        table(predicted_classification)
+        table(test_data$target)
+        
+        ## shows substantial error
+        
+## look at CV Tree for pruning
+        
+        set.seed(8675309)
+        cv_tree_fit <- cv.tree(tree_fit, FUN=prune.misclass)
+        
+        names(cv_tree_fit)
+        
+        plot(cv_tree_fit$size, cv_tree_fit$dev, type="b")
+        
+        
+        
+        
