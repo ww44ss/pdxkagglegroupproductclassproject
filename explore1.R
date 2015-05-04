@@ -34,7 +34,7 @@
                 feats<-colnames(train_data)
                 feats<-feats[3:93]
         
-                        sample_rows <- sample(1:dim(train_data)[1], 15000)
+                        sample_rows <- sample(1:dim(train_data)[1], 2*dim(train_data)[1]/3)
                         #sample_columns<-c("id","feat_1", sample(feats, 28), "feat_93", "target")
         
                         train_data_T <- train_data[sample_rows, ] #sample_columns]
@@ -149,10 +149,15 @@
         
         predicted_classification<-predict(tree_fit, data=td, type="class")
         
-        error = mean(predicted_classification != test_data$target)
         
         table(predicted_classification)
         table(test_data$target)
+        
+        table(predicted_classification, test_data$id)
+        
+        length(test_data$target)
+        length(predicted_classification)
+        
         
         ## shows substantial error
         
@@ -165,6 +170,8 @@
         
         plot(cv_tree_fit$size, cv_tree_fit$dev, type="b")
         
+ 
+## Let's check the confusion matrix
         
-        
+        table(predicted_classification, test_data$target)
         

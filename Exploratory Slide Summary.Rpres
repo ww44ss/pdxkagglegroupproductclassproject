@@ -304,7 +304,6 @@ library(rpart)
 Use Tree Package
 ===================================
 
-This shows just a few features (e.g. 17, 78, and 84) can do a pretty good job discriminating between Class\_1 and Class\_2. 
 
 
 ```{r, fig.width=10, fig.height=6, fig.align="center", echo=FALSE}
@@ -329,6 +328,7 @@ Check Accuracy
 td<-test_data
 td$id<-NULL
 tree_pred<-predict(tree_fit, data=td, type="class")
+head(tree_pred)
 ```
 
 Can we do tree on long_data?
