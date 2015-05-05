@@ -146,6 +146,9 @@
 
         td<-test_data
         td$id<-NULL
+        td$target<-NULL
+        
+        td<-td[1:10,]
         
         predicted_classification<-predict(tree_fit, data=td, type="class")
         
