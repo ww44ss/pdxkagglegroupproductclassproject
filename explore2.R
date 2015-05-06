@@ -390,6 +390,7 @@
         
         print(p)
         # can see a slight divergence of training adn test
+        ## still not over training
         
         ## make sure the test data is there 
         # head(test_data)
@@ -404,16 +405,27 @@
         td_predict <- as.factor(colnames(td_model)[max.col(td_model)])
         
         table(td_predict, td$target)
+
         
-        
+#         td_predict Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
+#         Class_1     223       1       6       0       0      22      20      47      65
+#         Class_2      91    4587    1773     532      37      90     191      86     109
+#         Class_3       7     582     835     124       0      15      64      13       5
+#         Class_4       0      19       9     172       0       4       9       0       2
+#         Class_5       3      15       2       6     888       1       2       1       2
+#         Class_6      53      15       4      35       0    4375      65      73      80
+#         Class_7      24      43      65      20       0      53     521      33       9
+#         Class_8     121      17      16       4       0      97      68    2450     106
+#         Class_9     138       8       6       2       0      79       6      56    1324
+#         
         check<-table(td_predict ==test_data$target)
         cat(check)
         
         accuracy<-1-check[1]/(check[1]+check[2])
         
-        cat(accuracy)   ## 75.46%
+        cat(accuracy)   ## 74.54%
         
-        ## a significant improvement over tree 
+        ## not a significant change 
         
         
         
