@@ -246,9 +246,133 @@
         
         cat(accuracy)   ## 85%
         
-        ## another big improvement
+        ## False accuracy as i am presrting the outcome. 
         
-##LET"S TRY GBM
+        
+### LETS GROUPING
+        train<-train_data
+        
+        train$target<-gsub("Class_1", "Class_1347", train$target)
+        train$target<-gsub("Class_2", "Class_25689", train$target)
+        train$target<-gsub("Class_3", "Class_1347", train$target)
+        train$target<-gsub("Class_4", "Class_1347", train$target)
+        train$target<-gsub("Class_5", "Class_25689", train$target)
+        train$target<-gsub("Class_6", "Class_25689", train$target)
+        train$target<-gsub("Class_7", "Class_1347", train$target)
+        train$target<-gsub("Class_8", "Class_25689", train$target)
+        train$target<-gsub("Class_9", "Class_25689", train$target)
+        
+        train$target<-as.factor(train$target)
+        
+        tree_a<-tree(target~.-id, method="class", data=train,mindev=0.01/2)
+        
+        plot(tree_a)
+        text(tree_a, pretty=0)
+        
+        test_a<-test_data
+        
+        test_a$target<-gsub("Class_1", "Class_1347", test_a$target)
+        test_a$target<-gsub("Class_2", "Class_25689", test_a$target)
+        test_a$target<-gsub("Class_3", "Class_1347", test_a$target)
+        test_a$target<-gsub("Class_4", "Class_1347", test_a$target)
+        test_a$target<-gsub("Class_5", "Class_25689", test_a$target)
+        test_a$target<-gsub("Class_6", "Class_25689", test_a$target)
+        test_a$target<-gsub("Class_7", "Class_1347", test_a$target)
+        test_a$target<-gsub("Class_8", "Class_25689", test_a$target)
+        test_a$target<-gsub("Class_9", "Class_25689", test_a$target)
+        
+        
+        
+        predict_a<-predict(tree_a, newdata=test_a, type="class")
+        
+        
+        table(test_a$target, predict_a)
+
+        
+        ## THis produces
+        
+
+        check<-table(test_a$target==predict_a)
+        cat(check)
+        
+        accuracy<-1-check[1]/(check[1]+check[2])
+        cat(round(accuracy*100,3))
+        
+        ## this approach got 74% into 25689
+        
+     
+##TRY SOME FEATURE ENGINEERING
+        
+        ### Since feat_11, 43 and 60 all indicate way from 25689 let's add
+        train<-train_data
+        
+        ## combined the features
+        feat_agg1<-train$feat_11+train$feat_43+train$feat_60
+        ## Null out individuals
+        train$feat_11<-NULL
+        train$feat_43<-NULL
+        train$feat_60<-NULL
+        train<-cbind(train, feat_agg1)
+        
+        train$target<-gsub("Class_1", "Class_1347", train$target)
+        train$target<-gsub("Class_2", "Class_25689", train$target)
+        train$target<-gsub("Class_3", "Class_1347", train$target)
+        train$target<-gsub("Class_4", "Class_1347", train$target)
+        train$target<-gsub("Class_5", "Class_25689", train$target)
+        train$target<-gsub("Class_6", "Class_25689", train$target)
+        train$target<-gsub("Class_7", "Class_1347", train$target)
+        train$target<-gsub("Class_8", "Class_25689", train$target)
+        train$target<-gsub("Class_9", "Class_25689", train$target)
+        
+        train$target<-as.factor(train$target)
+        
+        tree_a<-tree(target~.-id, method="class", data=train,mindev=0.01/2)
+        
+        plot(tree_a)
+        text(tree_a, pretty=0)
+        
+        test_a<-test_data
+        
+        ## combined the features
+        feat_agg1<-test_a$feat_11+test_a$feat_43+test_a$feat_60
+        ## Null out individuals
+        test_a$feat_11<-NULL
+        test_a$feat_43<-NULL
+        test_a$feat_60<-NULL
+        test_a<-cbind(test_a, feat_agg1)
+        
+        
+        test_a$target<-gsub("Class_1", "Class_1347", test_a$target)
+        test_a$target<-gsub("Class_2", "Class_25689", test_a$target)
+        test_a$target<-gsub("Class_3", "Class_1347", test_a$target)
+        test_a$target<-gsub("Class_4", "Class_1347", test_a$target)
+        test_a$target<-gsub("Class_5", "Class_25689", test_a$target)
+        test_a$target<-gsub("Class_6", "Class_25689", test_a$target)
+        test_a$target<-gsub("Class_7", "Class_1347", test_a$target)
+        test_a$target<-gsub("Class_8", "Class_25689", test_a$target)
+        test_a$target<-gsub("Class_9", "Class_25689", test_a$target)
+        
+        
+        
+        predict_a<-predict(tree_a, newdata=test_a, type="class")
+        
+        
+        table(test_a$target, predict_a)
+        
+        
+        ## THis produces
+        
+        
+        check<-table(test_a$target==predict_a)
+        cat(check)
+        
+        accuracy<-1-check[1]/(check[1]+check[2])
+        cat(round(accuracy*100,3))
+        
+        ## this approach got 75.846% into 25689
+        
+        
+        
         
         
         
