@@ -307,11 +307,11 @@
         train<-train_data
         
         ## combined the features
-        feat_agg1<-train$feat_11+train$feat_43+train$feat_60
+        feat_agg1<-train$feat_11+train$feat_43
         ## Null out individuals
         train$feat_11<-NULL
         train$feat_43<-NULL
-        train$feat_60<-NULL
+        #train$feat_60<-NULL
         train<-cbind(train, feat_agg1)
         
         train$target<-gsub("Class_1", "Class_1347", train$target)
@@ -334,11 +334,11 @@
         test_a<-test_data
         
         ## combined the features
-        feat_agg1<-test_a$feat_11+test_a$feat_43+test_a$feat_60
+        feat_agg1<-test_a$feat_11+test_a$feat_43
         ## Null out individuals
         test_a$feat_11<-NULL
         test_a$feat_43<-NULL
-        test_a$feat_60<-NULL
+        #test_a$feat_60<-NULL
         test_a<-cbind(test_a, feat_agg1)
         
         
@@ -369,7 +369,63 @@
         accuracy<-1-check[1]/(check[1]+check[2])
         cat(round(accuracy*100,3))
         
-        ## this approach got 75.846% into 25689
+        ## this approach got 76% into 25689 but is unsatisfactory overall.
+        
+### TRY GBM
+        ## USE {gbm} PACKAGE
+        
+        library(gbm)
+        
+        #train_control<-tree.control(nobs=dim(train_data)[1], mindev=0.01/2)
+        #train_control<-tree.control(nobs=dim(train_data)[1], mindev=0.01/2)
+        ## renumber rows
+        train<-train_data
+        
+        set.seed(8675309)
+        gbm_fit<-gbm(target~.-id, data=train, 
+                     n.trees = 100,
+                     distribution = "multinomial",
+                     shrinkage=0.05,
+                     interaction.depth=2,
+                     train.fraction=0.5,
+                     keep.data=TRUE,
+                     verbose=TRUE,
+                     cv.folds=3,                ## 3-fold cv 
+                     n.cores=1)
+        
+        ## summary of the tree
+        
+        fitsum <- summary(gbm_fit)
+        
+        plot(gbm_fit, i.var=59)
+        ## plot and label
+        names(gbm_fit)
+        
+        ## make sure the test data is there 
+        # head(test_data)
+        
+        td<-test_data
+        
+        td_model<-predict(gbm_fit, newdata=td, type="response")
+        
+        td_names<-colnames(td_model)
+        td_model<-as.data.frame(td_model)
+        colnames(td_model)<-td_names
+        td_predict <- as.factor(colnames(td_model)[max.col(td_model)])
+        
+        table(td_predict, td$target)
+        
+        check<-table(td_predict ==test_data$target)
+        cat(check)
+        
+        accuracy<-1-check[1]/(check[1]+check[2])
+        
+        cat(accuracy)   ## 73%
+        ## a significant improvement over tree 
+        
+        
+        
+        
         
         
         
