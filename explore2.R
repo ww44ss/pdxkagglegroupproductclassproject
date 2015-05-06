@@ -426,8 +426,110 @@
         cat(accuracy)   ## 74.54%
         
         ## not a significant change 
+
         
         
+### TRY GBM5
+        ## USE {gbm} PACKAGE
+        
+        ## keep number of trees to 400 of two and keep shrinkage = 0.05
+        ## keep depth to 1
+        ## bag.fraction to 0.1
+        
+        library(gbm)
+        
+        #train_control<-tree.control(nobs=dim(train_data)[1], mindev=0.01/2)
+        #train_control<-tree.control(nobs=dim(train_data)[1], mindev=0.01/2)
+        ## renumber rows
+        train<-train_data
+        
+        set.seed(8675309)
+        gbm_fit<-gbm(target~.-id, data=train, 
+                     n.trees = 400,
+                     distribution = "multinomial",
+                     shrinkage=0.05,
+                     interaction.depth=1,       ## interaction depth of 2 (normally between 1 and 3)
+                     train.fraction=0.5,
+                     bag.fraction=0.1,
+                     keep.data=TRUE,
+                     verbose=TRUE,
+                     cv.folds=3,                ## 3-fold cv 
+                     n.cores=1)                 ## avoid annoying bugs
+        
+        ## summary of the tree
+        
+        fitsum <- summary(gbm_fit)
+        plot(fitsum)
+        
+        plot(gbm_fit, i.var=11)
+        ## plot and label
+        names(gbm_fit)
+        
+        gbm_plot<-as.data.frame(cbind(gbm_fit$train.error, gbm_fit$valid.error))
+        colnames(gbm_plot)<-c("train.error", "valid.error")
+        gbm_plot$iteration<-1:gbm_fit$n.tree
+        
+        
+        p<-ggplot(gbm_plot, aes(x=iteration, y = train.error))+geom_line()
+        p<-p+geom_line(aes(x=iteration, y =valid.error), color="red")
+        
+        print(p)
+        # can see a slight divergence of training adn test
+        ## still not over training
+        
+        ## make sure the test data is there 
+        # head(test_data)
+        
+        td<-test_data
+        
+        td_model<-predict(gbm_fit, newdata=td, type="response")
+        
+        td_names<-colnames(td_model)
+        td_model<-as.data.frame(td_model)
+        colnames(td_model)<-td_names
+        td_predict <- as.factor(colnames(td_model)[max.col(td_model)])
+        
+        table(td_predict, td$target)
+        
+#         td_predict Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
+#         Class_1     225       8       5       0       0      24      27      58      52
+#         Class_2      85    4628    1808     535      39      87     204      83     116
+#         Class_3       7     537     793     122       0      17      66      11       2
+#         Class_4       0      22      15     170       0       3      10       0       1
+#         Class_5       2      19       4       7     883       1       2       1       3
+#         Class_6      49      12       2      39       1    4376      72      70      84
+#         Class_7      28      40      66      16       0      50     499      32       9
+#         Class_8     121      13      17       4       1     105      63    2446     105
+#         Class_9     143       8       6       2       1      73       3      58    1330
+#         
+            
+        check<-table(td_predict ==test_data$target)
+        cat(check)
+        
+        accuracy<-1-check[1]/(check[1]+check[2])
+        
+        cat(accuracy)   ## 74.44%
+        
+        ## not a significant change 
+        
+        
+##MAKE SUBMISSION
+        
+        ## get the actual test data
+        directory<- "/Users/winstonsaunders/Documents/pdxkagglegroupproductclassproject/"
+        file_name<- "test.csv"
+        
+        real_test_data<-read.csv(paste0(directory,file_name))
+        ##just make sure its real
+        print(head(real_test_data))
+        ## run the prediction
+        real_test_model<-predict(gbm_fit, newdata=real_test_data, type="response")
+        ## get the data
+        submission<-real_test_model[,,1]
+        ## add ids back
+        submission<-cbind("id"=real_test_data$id, submission)
+        ## write csv
+        write.csv(submission, paste0(directory,"May07",".csv"), row.names=F, quote=F)
         
         
         
