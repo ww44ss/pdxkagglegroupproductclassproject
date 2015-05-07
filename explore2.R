@@ -608,6 +608,7 @@
         
         library(gbm)
         
+        
         #train_control<-tree.control(nobs=dim(train_data)[1], mindev=0.01/2)
         #train_control<-tree.control(nobs=dim(train_data)[1], mindev=0.01/2)
         ## renumber rows
@@ -686,6 +687,14 @@
         ## kaggle score 0.62881
         
         ## a small improvement 
+        
+        ## Add a Random Forest
+        
+        library(randomForest)
+        
+        td_rf_model <- randomForest(target~.-id, data=train, importance=TRUE, ntree=2000)
+        
+        
         
 ##MAKE SUBMISSION
         
