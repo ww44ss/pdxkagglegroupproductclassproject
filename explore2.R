@@ -626,6 +626,11 @@
                      cv.folds=3,                ## 3-fold cv 
                      n.cores=1)                 ## avoid annoying bugs
         
+        
+        
+        
+        
+        
         ## summary of the tree
         
         fitsum <- summary(gbm_fit)
@@ -661,24 +666,24 @@
         
         table(td_predict, td$target)
         
-        #         td_predict Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
-        #         Class_1     211       7       3       0       0      30      33      65      47
-        #         Class_2      57    4504    1638     457      32      59     146      52      75
-        #         Class_3       3     622     945     125       0      11      67      16       6
-        #         Class_4       1      36      25     246       0       5      10       0       1
-        #         Class_5       2      17       4       7     883       1       3       0       2
-        #         Class_6      49      20       4      36       2    4377      78      83      88
-        #         Class_7      41      48      76      18       0      73     547      40      11
-        #         Class_8     133      14      15       4       7     102      53    2461      99
-        #         Class_9     163      19       6       2       1      78       9      42    1373
-        #         
+#         td_predict Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
+#         Class_1     265       7       5       2       0      29      35      75      67
+#         Class_2      45    4348    1408     352      29      53     112      38      60
+#         Class_3       3     697    1135     143       1       3      70       8       3
+#         Class_4       1     106      68     336       2      11      17       0       3
+#         Class_5       3      23       6       5     884       0      11       4       5
+#         Class_6      54      19       4      32       2    4363      82      76      73
+#         Class_7      23      51      64      20       0      82     560      37      10
+#         Class_8     114      21      18       2       6     102      51    2473      94
+#         Class_9     152      15       8       3       1      93       8      48    1387
+#         
         check<-table(td_predict ==test_data$target)
         cat(check)
         
         accuracy<-1-check[1]/(check[1]+check[2])
         
-        cat(accuracy)   ## 75.37%
-        ## kaggle score 0.65879
+        cat(accuracy)   ## 76.37%
+        ## kaggle score 0.62881
         
         ## a small improvement 
         
@@ -709,10 +714,10 @@
         tail(submission)
         
         ## write csv
-        write.csv(submission, paste0(directory,"May072",".csv"), row.names=F, quote=F)
+        write.csv(submission, paste0(directory,"May073",".csv"), row.names=F, quote=F)
         
         
-   submission      
+        
         
         
         
