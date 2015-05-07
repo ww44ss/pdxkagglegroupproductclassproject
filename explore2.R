@@ -692,7 +692,7 @@
         
         library(randomForest)
         
-        td_rf_model <- randomForest(target~.-id, data=train, importance=TRUE, ntree=2000)
+        td_rf_model <- randomForest(target~.-id, data=train, importance=TRUE, ntree=200, nodesize=10)
         
         
         
