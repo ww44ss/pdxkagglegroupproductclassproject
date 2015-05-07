@@ -548,7 +548,92 @@
         
         plot(gbm_fit, i.var=11)
         ## plot and label
-        names(gbm_fit)
+        #names(gbm_fit)
+        
+        gbm_plot<-as.data.frame(cbind(gbm_fit$train.error, gbm_fit$valid.error))
+        colnames(gbm_plot)<-c("train.error", "valid.error")
+        gbm_plot$iteration<-1:gbm_fit$n.tree
+        
+        
+        p<-ggplot(gbm_plot, aes(x=iteration, y = train.error))+geom_line()
+        p<-p+geom_line(aes(x=iteration, y =valid.error), color="red")
+        
+        print(p)
+        # can see a slight divergence of training adn test
+        ## still not over training
+        
+        ## make sure the test data is there 
+        # head(test_data)
+        
+        td<-test_data
+        
+        td_model<-predict(gbm_fit, newdata=td, type="response")
+        
+        td_names<-colnames(td_model)
+        td_model<-as.data.frame(td_model)
+        colnames(td_model)<-td_names
+        td_predict <- as.factor(colnames(td_model)[max.col(td_model)])
+        
+        table(td_predict, td$target)
+        
+#         td_predict Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
+#         Class_1     211       7       3       0       0      30      33      65      47
+#         Class_2      57    4504    1638     457      32      59     146      52      75
+#         Class_3       3     622     945     125       0      11      67      16       6
+#         Class_4       1      36      25     246       0       5      10       0       1
+#         Class_5       2      17       4       7     883       1       3       0       2
+#         Class_6      49      20       4      36       2    4377      78      83      88
+#         Class_7      41      48      76      18       0      73     547      40      11
+#         Class_8     133      14      15       4       7     102      53    2461      99
+#         Class_9     163      19       6       2       1      78       9      42    1373
+#         
+        check<-table(td_predict ==test_data$target)
+        cat(check)
+        
+        accuracy<-1-check[1]/(check[1]+check[2])
+        
+        cat(accuracy)   ## 75.37%
+        ## kaggle score 0.65879
+        
+        ## a small improvement
+        
+        
+### TRY GBM7
+        ## USE {gbm} PACKAGE
+        
+        ## increase number of trees to 2000 of two and keep shrinkage = 0.03
+        ## keep depth to 2
+        ## reduce bag.fraction to 0.03
+        ## 
+        
+        library(gbm)
+        
+        #train_control<-tree.control(nobs=dim(train_data)[1], mindev=0.01/2)
+        #train_control<-tree.control(nobs=dim(train_data)[1], mindev=0.01/2)
+        ## renumber rows
+        train<-train_data
+        
+        set.seed(8675309)
+        gbm_fit<-gbm(target~.-id, data=train, 
+                     n.trees = 2000,
+                     distribution = "multinomial",
+                     shrinkage=0.03,
+                     interaction.depth=2,       ## interaction depth of 1 (normally between 1 and 3)
+                     train.fraction=0.5,
+                     bag.fraction=0.03,
+                     keep.data=TRUE,
+                     verbose=TRUE,
+                     cv.folds=3,                ## 3-fold cv 
+                     n.cores=1)                 ## avoid annoying bugs
+        
+        ## summary of the tree
+        
+        fitsum <- summary(gbm_fit)
+        plot(fitsum)
+        
+        plot(gbm_fit, i.var=11)
+        ## plot and label
+        #names(gbm_fit)
         
         gbm_plot<-as.data.frame(cbind(gbm_fit$train.error, gbm_fit$valid.error))
         colnames(gbm_plot)<-c("train.error", "valid.error")
@@ -577,25 +662,25 @@
         table(td_predict, td$target)
         
         #         td_predict Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
-        #         Class_1     225       8       5       0       0      24      27      58      52
-        #         Class_2      85    4628    1808     535      39      87     204      83     116
-        #         Class_3       7     537     793     122       0      17      66      11       2
-        #         Class_4       0      22      15     170       0       3      10       0       1
-        #         Class_5       2      19       4       7     883       1       2       1       3
-        #         Class_6      49      12       2      39       1    4376      72      70      84
-        #         Class_7      28      40      66      16       0      50     499      32       9
-        #         Class_8     121      13      17       4       1     105      63    2446     105
-        #         Class_9     143       8       6       2       1      73       3      58    1330
+        #         Class_1     211       7       3       0       0      30      33      65      47
+        #         Class_2      57    4504    1638     457      32      59     146      52      75
+        #         Class_3       3     622     945     125       0      11      67      16       6
+        #         Class_4       1      36      25     246       0       5      10       0       1
+        #         Class_5       2      17       4       7     883       1       3       0       2
+        #         Class_6      49      20       4      36       2    4377      78      83      88
+        #         Class_7      41      48      76      18       0      73     547      40      11
+        #         Class_8     133      14      15       4       7     102      53    2461      99
+        #         Class_9     163      19       6       2       1      78       9      42    1373
         #         
-        
         check<-table(td_predict ==test_data$target)
         cat(check)
         
         accuracy<-1-check[1]/(check[1]+check[2])
         
-        cat(accuracy)   ## 74.44%
+        cat(accuracy)   ## 75.37%
+        ## kaggle score 0.65879
         
-        ## not a significant change 
+        ## a small improvement 
         
 ##MAKE SUBMISSION
         
@@ -610,13 +695,24 @@
         real_test_model<-predict(gbm_fit, newdata=real_test_data, type="response")
         ## get the data
         submission<-real_test_model[,,1]
+        submission<-as.data.frame(submission)
+        ## clean up the numbers
+        submission<-round(10000*submission,0)/10000.
+        
         ## add ids back
-        submission<-cbind("id"=real_test_data$id, submission)
+        submission<-cbind("id"=as.integer(real_test_data$id), submission)
+        submission<-as.data.frame(submission)
+        submission$id<-as.integer(submission$id)
+        options(scipen=10)
+        dim(submission)
+        head(submission)
+        tail(submission)
+        
         ## write csv
-        write.csv(submission, paste0(directory,"May07",".csv"), row.names=F, quote=F)
+        write.csv(submission, paste0(directory,"May072",".csv"), row.names=F, quote=F)
         
         
-        
+   submission      
         
         
         
