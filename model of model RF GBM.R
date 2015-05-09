@@ -46,25 +46,19 @@ require(randomForest)
         ## assign train_rf data set
         train_rf<-train_data
 
-library(randomForest)
+        ## model
+        td_rf_model <- randomForest(target~.-id, data=train_rf, importance=TRUE, ntree=200, nodesize=10)
 
-## model
-td_rf_model <- randomForest(target~.-id, data=train_rf, importance=TRUE, ntree=200, nodesize=10)
+        ## predict with second data set
+        predict_rf_input<-train2_data
+        rf_predict<-predict(td_rf_model, newdata=predict_rf_input, type="prob")
 
-## predict with second data set
-predict_rf_input<-train2_data
-rf_predict<-predict(td_rf_model, newdata=predict_rf_input, type="prob")
+## GBM (use {gbm} package)
 
-library(gbm)
+        rf_predict<-train2_data
 
-
-#train_control<-tree.control(nobs=dim(train_data)[1], mindev=0.01/2)
-#train_control<-tree.control(nobs=dim(train_data)[1], mindev=0.01/2)
-## renumber rows
-train<-train_data
-
-set.seed(8675309)
-gbm_fit<-gbm(target~.-id, data=rf_predict, 
+        set.seed(8675309)
+        gbm_fit<-gbm(target~.-id, data=rf_predict, 
              n.trees = 2000,
              distribution = "multinomial",
              shrinkage=0.03,
@@ -74,7 +68,8 @@ gbm_fit<-gbm(target~.-id, data=rf_predict,
              keep.data=TRUE,
              verbose=TRUE,
              cv.folds=3,                ## 3-fold cv 
-             n.cores=1)                 ## avoid annoying bugs
+             n.cores=1                  ## avoid annoying bugs
+        )                 
 
 
 ## summary of the tree
@@ -125,19 +120,11 @@ gbm_fit<-gbm(target~.-id, data=rf_predict,
         tail(submission)
 
         ## write csv
-        write.csv(submission, paste0(directory,"May082",".csv"), row.names=F, quote=F)
+        write.csv(submission, paste0(directory,"May091",".csv"), row.names=F, quote=F)
 
-        ## this is the May081 run
-        ## has a kaggle score of 0.56346 - right direction but marginal improvement
+        ## this is the May091 run
+        ## has a kaggle score of 0.7... - horrible score
 
-        td<-test_data
-        td_model<-predict(gbm_fit, newdata=td, type="response")
-        td_gbm_predict<-td_model[,,1]
-td_gbm_predict<-as.data.frame(td_gbm_predict)
-
-td_names<-colnames(td_model)
-td_model<-as.data.frame(td_model)
-colnames(td_model)<-td_names
-td_predict <- as.factor(colnames(td_model)[max.col(td_model)])
-
-table(td_predict, td$target)
+       
+        
+        
