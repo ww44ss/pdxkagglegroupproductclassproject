@@ -18,12 +18,9 @@
 
 ## LOAD REQUIRED PACKAGES
 
-require(plyr)
 require(ggplot2)
-require(tidyr)
 require(gbm)
 require(randomForest)
-
 
 
 ## SPLIT THE TRAIN DATA INTO RF AND GBM PORTIONS
@@ -50,8 +47,9 @@ require(randomForest)
         td_rf_model <- randomForest(target~.-id, data=train_rf, importance=TRUE, ntree=200, nodesize=10)
 
         ## predict with second data set
-        predict_rf_input<-train2_data
+        predict_rf_input<-train_data2
         rf_predict<-predict(td_rf_model, newdata=predict_rf_input, type="prob")
+        
 
 ## GBM (use {gbm} package)
 

@@ -1,5 +1,5 @@
 ## PDX DATA SCIENCE KAGGLE PROJECT
-## Program thread 4
+## Program thread 5
 ## In this thread continue RF adn GBM combos
 ##
 ## This is an exploratory look at some of the data in the kaggle product classification competition.
@@ -13,7 +13,6 @@ file_name<- "train.csv"
 
 train_data<-read.csv(paste0(directory,file_name))
 
-print(head(train_data))
 
 ## LOAD REQUIRED PACKAGES
 
@@ -30,19 +29,25 @@ cat("the dimensions of train_data are: ",dim(train_data)[1], " rows X ", dim(tra
 ## SAMPLE DATA FOR QUICK LOOKS
 ##
 ## if sample_data == TRUE then creates a sample of overall data
+## This creates three data sets
+## train_data for the initial training (60% of original data)
+## train_data2 for secondry training (30% of original data)
+## eval_data (10% of original data)
 
 sample_data<-TRUE
 
 set.seed(8675309)
 if (sample_data == TRUE){
         sample_rows <- sample(1:nrow(train_data), size=0.6*nrow(train_data))
-        train_data<-train_data[sample_rows,]
+        td<-train_data[sample_rows,]
         train_data2<-train_data[-sample_rows,]
         
         ## create a second smaller sample for intermediate evaluation
         sample_rows2<- sample(1:nrow(train_data2), size=0.75*nrow(train_data2))
         train_data2<-train_data2[sample_rows2,]
         eval_data<-train_data2[-sample_rows2,]
+        
+        train_data<-td
         
 }
 
@@ -58,7 +63,70 @@ cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_
 ## keep bag.fraction 0.031 which will make 3
 ## 
 
-library(gbm)
+## RANDOM FOREST
+
+        ## prep and condition the data
+
+        ## get rid of target data and id data
+        td<-train_data
+
+        ## increase to 1000 trees and decrease node size to 3
+        set.seed(8765309)
+        rf_model <- randomForest(target~.-id, data=td, importance=TRUE, ntree=100, nodesize=10)
+
+                ## first test results against eval_data
+                predict_rf_input<-eval_data
+                rf_predict<-predict(rf_model, newdata=predict_rf_input, type="prob")
+                rf_predict<-as.data.frame(rf_predict)
+                        temp_predict<-rf_predict
+                
+                rf_predict<- as.factor(colnames(rf_predict)[max.col(rf_predict)])
+
+                table(rf_predict, eval_data$target)
+                check<-table(rf_predict==eval_data$target)
+                accuracy<-1-check[1]/(check[1]+check[2])
+
+                cat("accuracy of rf is ", round(100*accuracy,2), "%")
+
+                ## note can do much better by simply augmenting probability of class_4
+                accuracy_vector<-matrix(rep(0,2000), ncol=2)
+                
+                        predict_rf_input<-train_data2
+                        temp_predict<-predict(rf_model, newdata=predict_rf_input, type="prob")
+                        temp_predict<-as.data.frame(temp_predict)
+                                b<- as.factor(colnames(temp_predict)[max.col(temp_predict)])
+                                check<-table(b==predict_rf_input$target)
+                                accuracy<-1-check[1]/(check[1]+check[2])
+
+                                cat("accuracy of rf is ", round(100*accuracy,2), "%")
+
+                                table(b,predict_rf_input$target)
+
+                for (a in 1:1000){
+                        b<-temp_predict
+                        b$Class_4<-b$Class_4*(1+2*(a-1)/1000)
+                        b<- as.factor(colnames(b)[max.col(b)])
+                        
+                        check<-table(b==train_data2$target)
+                        accuracy<-1-check[1]/(check[1]+check[2])
+                        
+                        accuracy_vector[a,1]<-(1+2*(a-1)/1000)
+                        accuracy_vector[a,2]<-accuracy
+                           
+                }
+                plot(accuracy_vector)
+        
+        table(rf_predict, eval_data$target)
+        check<-table(rf_predict==eval_data$target)
+        accuracy<-1-check[1]/(check[1]+check[2])
+
+        cat("accuracy of this one is", accuracy)
+
+accuracy_vector[a,1]<-(1+2*(a-1)/1000)
+
+
+        predict_rf_input<-train_data2
+        rf_predict<-predict(rf_model, newdata=predict_rf_input, type="prob")
 
 
 ### GBM part
@@ -66,7 +134,7 @@ library(gbm)
 #train_control<-tree.control(nobs=dim(train_data)[1], mindev=0.01/2)
 #train_control<-tree.control(nobs=dim(train_data)[1], mindev=0.01/2)
 ## renumber rows
-train<-train_data
+train<-train_data2
 
 set.seed(8675309)
 gbm_fit<-gbm(target~.-id, data=train, 
@@ -89,30 +157,30 @@ plot(fitsum)
 
 ## plot errors to check convergence and overfitting
 
-        gbm_plot<-as.data.frame(cbind(gbm_fit$train.error, gbm_fit$valid.error))
-        colnames(gbm_plot)<-c("train.error", "valid.error")
-        gbm_plot$iteration<-1:gbm_fit$n.tree
+gbm_plot<-as.data.frame(cbind(gbm_fit$train.error, gbm_fit$valid.error))
+colnames(gbm_plot)<-c("train.error", "valid.error")
+gbm_plot$iteration<-1:gbm_fit$n.tree
 
-        p<-ggplot(gbm_plot, aes(x=iteration, y = train.error))+geom_line()
-        p<-p+geom_line(aes(x=iteration, y =valid.error), color="red")
+p<-ggplot(gbm_plot, aes(x=iteration, y = train.error))+geom_line()
+p<-p+geom_line(aes(x=iteration, y =valid.error), color="red")
 
-        print(p)
+print(p)
 
 ## evaluate performance of GBM
-        ## assign eval_data
-        td<-eval_data
+## assign eval_data
+td<-eval_data
 
-        td_model<-predict(gbm_fit, newdata=td, type="response")
+td_model<-predict(gbm_fit, newdata=td, type="response")
 
-        td_gbm_predict<-td_model[,,1]
-        td_gbm_predict<-as.data.frame(td_gbm_predict)
+td_gbm_predict<-td_model[,,1]
+td_gbm_predict<-as.data.frame(td_gbm_predict)
 
-        td_names<-colnames(td_model)
-        td_model<-as.data.frame(td_model)
-        colnames(td_model)<-td_names
-        td_predict <- as.factor(colnames(td_model)[max.col(td_model)])
+td_names<-colnames(td_model)
+td_model<-as.data.frame(td_model)
+colnames(td_model)<-td_names
+td_predict <- as.factor(colnames(td_model)[max.col(td_model)])
 
-        table(td_predict, td$target)
+table(td_predict, td$target)
 
 # td_predict    Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
 #       Class_1      31       1       0       0       0       4       4       7      11
@@ -124,46 +192,34 @@ plot(fitsum)
 #       Class_7       0       8      10       2       0       7      74       3       1
 #       Class_8      15       4       0       0       0      11       6     321       7
 #       Class_9      16       1       2       0       0      10       3       5     186       
-        check<-table(td_predict ==eval_data$target)
-        cat(check)
+check<-table(td_predict ==eval_data$target)
+cat(check)
 
-        accuracy<-1-check[1]/(check[1]+check[2])
+accuracy<-1-check[1]/(check[1]+check[2])
 
-        cat("The accuracy of the GBM Model is roughly ", round(100*accuracy,1), "%")   ## 74.6%
-        
+cat("The accuracy of the GBM Model is roughly ", round(100*accuracy,1), "%")   ## 74.6%
+
 
 ## DO INTERMEDIATE EVALUATION
-        td<-train_data2
+td<-train_data2
 
-        ## predict and condition the data
-        td_model<-predict(gbm_fit, newdata=td, type="response")
+## predict and condition the data
+td_model<-predict(gbm_fit, newdata=td, type="response")
 
-        td_gbm_predict<-td_model[,,1]
-        td_gbm_predict<-as.data.frame(td_gbm_predict)
+td_gbm_predict<-td_model[,,1]
+td_gbm_predict<-as.data.frame(td_gbm_predict)
 
 
-## RANDOM FOREST
-
-        ## prep and condition the data
-
-        ## get rid of target data and id data
-        td<-td[, -which(names(td)=="id")]
-        td<-td[, -which(names(td)=="target")]
-
-        td_gbm_predict2 <- as.factor(colnames(td_gbm_predict)[max.col(td_gbm_predict)])
-        
-        ## increase to 1000 trees and decrease node size to 3
-        rf_model <- randomForest(x=td, y = td_gbm_predict2, importance=TRUE, ntree=100)
 
 
 ## FINAL PREDICTION
 
 ## test on the eval data set
 
-        final_predict<-predict(rf_model, newdata=eval_data, type="prob")
-        eval_predict <- as.factor(colnames(final_predict)[max.col(final_predict)])
+final_predict<-predict(rf_model, newdata=eval_data, type="prob")
+eval_predict <- as.factor(colnames(final_predict)[max.col(final_predict)])
 
-        table(eval_predict, eval_data$target)
+table(eval_predict, eval_data$target)
 
 
 #         average_predict_single Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
