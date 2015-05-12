@@ -24,7 +24,7 @@ require(randomForest)
 ## PRINT THE DIMENSIONS OF THE TRAINING DATA
 ## ensure proper read of data
 
-cat("the dimensions of train_data are: ",dim(train_data)[1], " rows X ", dim(train_data)[2], "columns")
+cat("the dimensions of loaded train_data are: ",dim(train_data)[1], " rows X ", dim(train_data)[2], "columns")
 
 ## SAMPLE DATA FOR QUICK LOOKS
 ##
@@ -89,9 +89,9 @@ cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_
                 cat("accuracy of rf is ", round(100*accuracy,2), "%")
 
                 ## note can do much better by simply augmenting probability of class_4
-                accuracy_vector<-matrix(rep(0,2000), ncol=2)
+                accuracy_vector<-matrix(rep(0,200), ncol=2)
                 
-                        predict_rf_input<-train_data2
+                        predict_rf_input<-eval_data
                         temp_predict<-predict(rf_model, newdata=predict_rf_input, type="prob")
                         temp_predict<-as.data.frame(temp_predict)
                                 b<- as.factor(colnames(temp_predict)[max.col(temp_predict)])
@@ -102,15 +102,15 @@ cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_
 
                                 table(b,predict_rf_input$target)
 
-                for (a in 1:1000){
+                for (a in 1:100){
                         b<-temp_predict
-                        b$Class_4<-b$Class_4*(1+2*(a-1)/1000)
+                        b$Class_4<-b$Class_4*(0.5+3*(a-1)/100)
                         b<- as.factor(colnames(b)[max.col(b)])
                         
-                        check<-table(b==train_data2$target)
+                        check<-table(b==predict_rf_input$target)
                         accuracy<-1-check[1]/(check[1]+check[2])
                         
-                        accuracy_vector[a,1]<-(1+2*(a-1)/1000)
+                        accuracy_vector[a,1]<-(0.5+3*(a-1)/100)
                         accuracy_vector[a,2]<-accuracy
                            
                 }
@@ -122,55 +122,72 @@ cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_
 
         cat("accuracy of this one is", accuracy)
 
-accuracy_vector[a,1]<-(1+2*(a-1)/1000)
 
-
-        predict_rf_input<-train_data2
-        rf_predict<-predict(rf_model, newdata=predict_rf_input, type="prob")
 
 
 ### GBM part
 
-#train_control<-tree.control(nobs=dim(train_data)[1], mindev=0.01/2)
-#train_control<-tree.control(nobs=dim(train_data)[1], mindev=0.01/2)
-## renumber rows
-train<-train_data2
+## assign train data
+        td<-train_data2
+        
+        ##assign train_data and use to predict output
+        
+        rf_predicted<-predict(rf_model, newdata=td, type="prob")
+        rf_predicted<-as.data.frame(rf_predicted)
+      
+        ## use gbm fit to fit output of rf to data
+        ## note that x = the rf_predicted values of class data
+        ## The y are the actual target values of the data
 
-set.seed(8675309)
-gbm_fit<-gbm(target~.-id, data=train, 
+        set.seed(8675309)
+        gbm_fit<-gbm.fit(x=rf_predicted, y = td_target, 
              n.trees = 100,
              distribution = "multinomial",
              shrinkage=0.06,
              interaction.depth=4,       ## interaction depth of 1 (normally between 1 and 3)
-             train.fraction=0.5,
              bag.fraction=0.031,        ## out of 93 predictors select 3 to get weaker predictors
+             nTrain=4
              keep.data=TRUE,
              verbose=TRUE,
-             cv.folds=2,                ## 2-fold cv 
-             n.cores=1)                 ## avoid annoying bugs
+             #cv.folds=2,                ## 2-fold cv 
+             #n.cores=1                 ## avoid annoying bugs
+        )
 
 
-## summary of the tree
+        ## summary of the tree
 
-fitsum <- summary(gbm_fit)
-plot(fitsum)
+        fitsum <- summary(gbm_fit)
+        plot(fitsum)
 
-## plot errors to check convergence and overfitting
+        ## plot errors to check convergence and overfitting
 
-gbm_plot<-as.data.frame(cbind(gbm_fit$train.error, gbm_fit$valid.error))
-colnames(gbm_plot)<-c("train.error", "valid.error")
-gbm_plot$iteration<-1:gbm_fit$n.tree
+        gbm_plot<-as.data.frame(cbind(gbm_fit$train.error, gbm_fit$valid.error))
+        colnames(gbm_plot)<-c("train.error", "valid.error")
+        gbm_plot$iteration<-1:gbm_fit$n.tree
 
-p<-ggplot(gbm_plot, aes(x=iteration, y = train.error))+geom_line()
-p<-p+geom_line(aes(x=iteration, y =valid.error), color="red")
+        p<-ggplot(gbm_plot, aes(x=iteration, y = train.error))+geom_line()
+        p<-p+geom_line(aes(x=iteration, y =valid.error), color="red")
 
-print(p)
+        print(p)
 
-## evaluate performance of GBM
-## assign eval_data
-td<-eval_data
+## evaluate performance of RF->GBM
+        ## assign eval_data
+        td<-eval_data
 
-td_model<-predict(gbm_fit, newdata=td, type="response")
+        cat("the dimesions of the eval data are ", nrow(td), " X ", ncol(td))
+
+        ##assign train_data and use to predict output
+
+        rf_predicted<-predict(rf_model, newdata=td, type="prob")
+        rf_predicted<-as.data.frame(rf_predicted)
+
+        cat("the dimesions of the rf_predictions are ", nrow(rf_predicted), " X ", ncol(rf_predicted))
+
+        cat("and the first few rows are")
+        head(rf_predicted,5)
+
+
+        td_model<-predict(gbm_fit, newdata=rf_predicted, type="response")
 
 td_gbm_predict<-td_model[,,1]
 td_gbm_predict<-as.data.frame(td_gbm_predict)
