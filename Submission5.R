@@ -88,41 +88,41 @@ cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_
 
                 cat("accuracy of rf is ", round(100*accuracy,2), "%")
 
-                ## note can do much better by simply augmenting probability of class_4
-                accuracy_vector<-matrix(rep(0,200), ncol=2)
-                
-                        predict_rf_input<-eval_data
-                        temp_predict<-predict(rf_model, newdata=predict_rf_input, type="prob")
-                        temp_predict<-as.data.frame(temp_predict)
-                                b<- as.factor(colnames(temp_predict)[max.col(temp_predict)])
-                                check<-table(b==predict_rf_input$target)
-                                accuracy<-1-check[1]/(check[1]+check[2])
+                ## accuracy of 79.7%
 
-                                cat("accuracy of rf is ", round(100*accuracy,2), "%")
-
-                                table(b,predict_rf_input$target)
-
-                for (a in 1:100){
-                        b<-temp_predict
-                        b$Class_4<-b$Class_4*(0.5+3*(a-1)/100)
-                        b<- as.factor(colnames(b)[max.col(b)])
-                        
-                        check<-table(b==predict_rf_input$target)
-                        accuracy<-1-check[1]/(check[1]+check[2])
-                        
-                        accuracy_vector[a,1]<-(0.5+3*(a-1)/100)
-                        accuracy_vector[a,2]<-accuracy
-                           
-                }
-                plot(accuracy_vector)
-        
-        table(rf_predict, eval_data$target)
-        check<-table(rf_predict==eval_data$target)
-        accuracy<-1-check[1]/(check[1]+check[2])
-
-        cat("accuracy of this one is", accuracy)
-
-
+#                 ## note can do much better by simply augmenting probability of class_4
+#                 accuracy_vector<-matrix(rep(0,200), ncol=2)
+#                 
+#                         predict_rf_input<-eval_data
+#                         temp_predict<-predict(rf_model, newdata=predict_rf_input, type="prob")
+#                         temp_predict<-as.data.frame(temp_predict)
+#                                 b<- as.factor(colnames(temp_predict)[max.col(temp_predict)])
+#                                 check<-table(b==predict_rf_input$target)
+#                                 accuracy<-1-check[1]/(check[1]+check[2])
+# 
+#                                 cat("accuracy of rf is ", round(100*accuracy,2), "%")
+# 
+#                                 table(b,predict_rf_input$target)
+# 
+#                 for (a in 1:100){
+#                         b<-temp_predict
+#                         b$Class_4<-b$Class_4*(0.5+3*(a-1)/100)
+#                         b<- as.factor(colnames(b)[max.col(b)])
+#                         
+#                         check<-table(b==predict_rf_input$target)
+#                         accuracy<-1-check[1]/(check[1]+check[2])
+#                         
+#                         accuracy_vector[a,1]<-(0.5+3*(a-1)/100)
+#                         accuracy_vector[a,2]<-accuracy
+#                            
+#                 }
+#                 plot(accuracy_vector)
+#         
+#         table(rf_predict, eval_data$target)
+#         check<-table(rf_predict==eval_data$target)
+#         accuracy<-1-check[1]/(check[1]+check[2])
+# 
+#         cat("accuracy of this one is", accuracy)
 
 
 ### GBM part
@@ -134,6 +134,8 @@ cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_
         
         rf_predicted<-predict(rf_model, newdata=td, type="prob")
         rf_predicted<-as.data.frame(rf_predicted)
+
+        td_target<-train_data2$target
       
         ## use gbm fit to fit output of rf to data
         ## note that x = the rf_predicted values of class data
@@ -141,18 +143,26 @@ cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_
 
         set.seed(8675309)
         gbm_fit<-gbm.fit(x=rf_predicted, y = td_target, 
-             n.trees = 100,
+             n.trees = 200,
              distribution = "multinomial",
-             shrinkage=0.06,
-             interaction.depth=4,       ## interaction depth of 1 (normally between 1 and 3)
-             bag.fraction=0.031,        ## out of 93 predictors select 3 to get weaker predictors
-             nTrain=4
+             shrinkage=0.1,
+             interaction.depth=2,       ## interaction depth of 1 (normally between 1 and 3)
+#             bag.fraction=0.5,        ## out of 93 predictors select 3 to get weaker predictors
+#             nTrain=2,
              keep.data=TRUE,
              verbose=TRUE,
              #cv.folds=2,                ## 2-fold cv 
              #n.cores=1                 ## avoid annoying bugs
         )
 
+#code from http://stackoverflow.com/questions/8722247/r-caret-and-gbm-cant-find-ntrees-input
+#gbmGrid <- expand.grid(.interaction.depth = (1:5) * 2, .n.trees = (1:5)*50, .shrinkage = .1)
+#+ bootControl <- trainControl(number = 1)#
+#gbmFit <- train(prePrior1[,-c(2,60,61,161)], trainClass, method = "gbm", tuneLength = 5,
+#+ trControl = bootControl
+#+ ##, scaled = FALSE
+#        + , tuneGrid = gbmGrid 
+#+ )
 
         ## summary of the tree
 
@@ -176,15 +186,24 @@ cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_
 
         cat("the dimesions of the eval data are ", nrow(td), " X ", ncol(td))
 
-        ##assign train_data and use to predict output
+        ##use to predict output
 
+        ## fitrst run rf model
         rf_predicted<-predict(rf_model, newdata=td, type="prob")
         rf_predicted<-as.data.frame(rf_predicted)
+        ## then run gbm model
+        gbm_rf_predicted<-predict(gbm_fit, newdata=rf_predicted, type='response', 
+                                  n.trees=gbm_fit$bestTune$.n.trees)
+        gbm_rf_predicted<-as.data.frame(gbm_rf_predicted)
 
-        cat("the dimesions of the rf_predictions are ", nrow(rf_predicted), " X ", ncol(rf_predicted))
+        cat("the dimesions of the rf_predictions are ", nrow(gbm_rf_predicted), " X ", ncol(gbm_rf_predicted))
 
         cat("and the first few rows are")
         head(rf_predicted,5)
+
+
+        eval_predict <- as.factor(colnames(rf_predicted)[max.col(rf_predicted)])
+        table(eval_predict, eval_data$target)
 
 
         td_model<-predict(gbm_fit, newdata=rf_predicted, type="response")
@@ -239,18 +258,6 @@ eval_predict <- as.factor(colnames(final_predict)[max.col(final_predict)])
 table(eval_predict, eval_data$target)
 
 
-#         average_predict_single Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
-#         Class_1     280       3       2       1       1      23      23      42      33
-#         Class_2      38    4574    1382     357      24      46     127      38      48
-#         Class_3       2     567    1221     129       1       4      60       8       1
-#         Class_4       0      49      40     353       1       4      13       0       1
-#         Class_5       1      11       2       6     892       0       6       2       3
-#         Class_6      46      18       4      30       2    4434      79      79      66
-#         Class_7      27      40      44      15       0      62     574      22       8
-#         Class_8     119      15      17       2       2      90      57    2533      77
-#         Class_9     147      10       4       2       2      73       7      35    1465
-
-## not a significant change....
 
 check<-table(average_predict_single ==td$target)
 cat(check)
