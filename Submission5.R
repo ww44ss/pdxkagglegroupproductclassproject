@@ -63,6 +63,18 @@ if (sample_data == TRUE){
                 rf_predict<- as.factor(colnames(rf_predict)[max.col(rf_predict)])
 
                 table(rf_predict, eval_data$target)
+        
+#         rf_predict Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
+#         Class_1      40       1       0       0       0       0       3       5       5
+#         Class_2      11    1029     319      91       4      11      31       8      12
+#         Class_3       0     103     274      25       0       2      12       2       0
+#         Class_4       0       3       4      64       0       1       2       0       0
+#         Class_5       0       1       0       0     182       1       0       0       0
+#         Class_6      19       6       0       7       2    1021      12      14      17
+#         Class_7       6       8       5       2       0       6     111       3       1
+#         Class_8      38       7       4       1       0      21      20     603      22
+#         Class_9      39       1       1       0       0       5       0       4     312
+        
                 check<-table(rf_predict==eval_data$target)
                 accuracy<-1-check[1]/(check[1]+check[2])
 
@@ -73,7 +85,7 @@ if (sample_data == TRUE){
 
 ### GBM
 
-        ## assign train data
+        ## assign second partition of train data
         td<-train_data2
         
         ##assign train_data and use to predict output
@@ -92,10 +104,10 @@ if (sample_data == TRUE){
         set.seed(8675309)
 
         gbm_fit<-gbm(target~.,data=gbm_input, 
-                     n.trees = 100,
+                     n.trees = 200,
                      distribution = "multinomial",
-                     shrinkage=0.05,
-                     interaction.depth=2,
+                     shrinkage=0.03,
+                     interaction.depth=3,
                      train.fraction=0.5,
                      keep.data=TRUE,
                      verbose=TRUE,
@@ -152,52 +164,52 @@ if (sample_data == TRUE){
         ## then run gbm model
         gbm_rf_predicted<-predict(gbm_fit, newdata=rf_predicted, type='response')
         gbm_rf_predicted<-as.data.frame(gbm_rf_predicted)
+        ##check prediction
+        head(gbm_rf_predicted)
 
         cat("the dimesions of the rf_predictions are ", nrow(gbm_rf_predicted), " X ", ncol(gbm_rf_predicted))
 
         cat("and the first few rows are")
         head(gbm_rf_predicted,5)
+        
+        ## clean up names in predicted table
+        names(gbm_rf_predicted)<-gsub(".[0-9]{2,}","",names(gbm_rf_predicted) )
 
 ## Evaluate rf_predicted
         eval_predict <- as.factor(colnames(rf_predicted)[max.col(rf_predicted)])
         table(eval_predict, eval_data$target)
 
-# eval_predict Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
-# Class_1      41       1       0       0       0       0       3       5       5
-# Class_2      11    1028     318      90       4      11      31       8      12
-# Class_3       0     102     274      25       0       2      11       2       0
-# Class_4       0       4       4      65       0       1       2       0       0
-# Class_5       0       1       0       0     182       1       0       0       0
-# Class_6      19       6       0       7       2    1021      12      14      17
-# Class_7       5       9       6       2       0       6     112       3       1
-# Class_8      38       7       4       1       0      21      20     603      22
-# Class_9      39       1       1       0       0       5       0       4     312
+#         eval_predict Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
+#         Class_1      40       1       0       0       0       0       3       7       5
+#         Class_2      11    1029     318      88       4      11      30       8      13
+#         Class_3       0     103     274      27       0       2      13       2       0
+#         Class_4       0       3       4      65       0       1       2       0       0
+#         Class_5       0       1       0       0     182       1       0       0       0
+#         Class_6      20       6       0       7       2    1021      12      14      17
+#         Class_7       6       8       6       2       0       6     111       2       0
+#         Class_8      38       7       4       1       0      21      20     602      22
+#         Class_9      38       1       1       0       0       5       0       4     312
 
 eval_predict <- as.factor(colnames(gbm_rf_predicted)[max.col(gbm_rf_predicted)])
 table(eval_predict, eval_data$target)
 
-# eval_predict  Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
-# Class_1.100      78       1       0       1       0       3       6      14       9
-# Class_2.100       8     961     246      55       4       9      17       4      10
-# Class_3.100       0     146     331      37       0       3      17       6       1
-# Class_4.100       0      20      14      88       0       3       3       0       0
-# Class_5.100       0       1       0       0     183       1       0       0       0
-# Class_6.100      14       4       1       6       1    1014       9      12      14
-# Class_7.100       6      18      11       2       0      10     128       4       1
-# Class_8.100      18       5       4       1       0      20      11     594      20
-# Class_9.100      29       3       0       0       0       5       0       5     314
-
-    ## fix levels and column names
-        levels(eval_predict)<-gsub(".100", "", levels(eval_predict))
+#         eval_predict Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
+#         Class_1      83       1       0       1       0       2       6      13      11
+#         Class_2       8     969     244      52       4       6      17       5       9
+#         Class_3       0     137     337      36       0       2      13       5       1
+#         Class_4       0      20      10      92       0       3       3       0       0
+#         Class_5       0       2       0       0     182       1       0       0       0
+#         Class_6      11       4       1       6       2    1017       9      11      12
+#         Class_7       8      17      10       2       0      12     131       4       0
+#         Class_8      16       5       4       1       0      20      12     594      20
+#         Class_9      27       4       1       0       0       5       0       7     316
 
         check<-table(eval_predict==eval_data$target)
         accuracy<-1-check[1]/(check[1]+check[2])
 
         cat("accuracy of rf is ", round(100*accuracy,2), "%")
 
-        ## improved to 80.9%
-
-
+        ## improved to 81.53%
 
 ##MAKE SUBMISSION
 
@@ -207,21 +219,24 @@ table(eval_predict, eval_data$target)
 
         submission_test_data<-read.csv(paste0(directory,file_name))
         ##just make sure its real
-        print(head(submission_test_data))
+        print(submission_test_data[1:6,1:10])
         ## run the prediction
         
         td<-submission_test_data
         
         rf_predicted<-predict(rf_model, newdata=td, type="prob")
         rf_predicted<-as.data.frame(rf_predicted)
+        head(rf_predicted)
         ## then run gbm model
         gbm_rf_predicted<-predict(gbm_fit, newdata=rf_predicted, type='response')
         gbm_rf_predicted<-as.data.frame(gbm_rf_predicted)
         
-        cat("the dimesions of the rf_predictions are ", nrow(gbm_rf_predicted), " X ", ncol(gbm_rf_predicted))
+        ## clean up names in predicted table
+        names(gbm_rf_predicted)<-gsub(".[0-9]{2,}","",names(gbm_rf_predicted) )
         
-        cat("and the first few rows are")
-        head(gbm_rf_predicted,5)
+
+        
+        cat("the dimesions of the rf_predictions are ", nrow(gbm_rf_predicted), " X ", ncol(gbm_rf_predicted))
         
         submission<-gbm_rf_predicted
         
@@ -229,7 +244,7 @@ table(eval_predict, eval_data$target)
         submission<-as.data.frame(submission)
         
         ## clean up the numbers
-        submission<-round(10000*submission,0)/10000.
+        submission<-round(1000*submission,0)/1000.
 
         ## add ids back
         submission<-cbind("id"=as.integer(submission_test_data$id), submission)
@@ -237,11 +252,10 @@ table(eval_predict, eval_data$target)
         submission$id<-as.integer(submission$id)
         ## get rid of scientiic notation
         options(scipen=10)
-        ## check dimensions and data
-        dim(submission)
-        head(submission)
-        tail(submission)
+        ## check data
+        cat("and the first few rows are")
+        head(submission,5)
 
         ## write csv
-        write.csv(submission, paste0(directory,"May082",".csv"), row.names=F, quote=F)
-
+        write.csv(submission, paste0(directory,"May14b",".csv"), row.names=F, quote=F)
+        ## score of 0.54279
