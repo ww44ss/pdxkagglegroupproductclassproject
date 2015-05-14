@@ -1,38 +1,27 @@
 ## PDX DATA SCIENCE KAGGLE PROJECT
 ## Program thread 5
-## In this thread continue RF adn GBM combos
-##
-## This is an exploratory look at some of the data in the kaggle product classification competition.
-## the program provides for sampling the data (to get is small)
-## and then looks at some cursory summary statistics
-
-## GET TRAINING DATA
-
-directory<- "/Users/winstonsaunders/Documents/pdxkagglegroupproductclassproject/"
-file_name<- "train.csv"
-
-train_data<-read.csv(paste0(directory,file_name))
-
+## In this thread continues RF and GBM combos
 
 ## LOAD REQUIRED PACKAGES
 
+        require(ggplot2)
+        require(gbm)
+        require(randomForest)
 
-require(ggplot2)
-require(gbm)
-require(randomForest)
 
-## PRINT THE DIMENSIONS OF THE TRAINING DATA
-## ensure proper read of data
+## GET TRAINING DATA
+        ## variable train_data
 
-cat("the dimensions of loaded train_data are: ",dim(train_data)[1], " rows X ", dim(train_data)[2], "columns")
+        directory<- "/Users/winstonsaunders/Documents/pdxkagglegroupproductclassproject/"
+        file_name<- "train.csv"
+
+        train_data<-read.csv(paste0(directory,file_name))
+
+        ## ensure proper read of data
+        cat("the dimensions of loaded train_data are: ",dim(train_data)[1], " rows X ", dim(train_data)[2], "columns")
 
 ## SAMPLE DATA FOR QUICK LOOKS
-##
-## if sample_data == TRUE then creates a sample of overall data
-## This creates three data sets
-## train_data for the initial training (60% of original data)
-## train_data2 for secondry training (30% of original data)
-## eval_data (10% of original data)
+
 
 sample_data<-TRUE
 
@@ -136,24 +125,37 @@ cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_
         rf_predicted<-as.data.frame(rf_predicted)
 
         td_target<-train_data2$target
+
+        gbm_input<-cbind(rf_predicted, 'target'=td_target)
       
         ## use gbm fit to fit output of rf to data
         ## note that x = the rf_predicted values of class data
         ## The y are the actual target values of the data
 
         set.seed(8675309)
-        gbm_fit<-gbm.fit(x=rf_predicted, y = td_target, 
-             n.trees = 200,
-             distribution = "multinomial",
-             shrinkage=0.1,
-             interaction.depth=2,       ## interaction depth of 1 (normally between 1 and 3)
+
+        gbm_fit<-gbm(target~.,data=gbm_input, 
+                     n.trees = 100,
+                     distribution = "multinomial",
+                     shrinkage=0.05,
+                     interaction.depth=2,
+                     train.fraction=0.5,
+                     keep.data=TRUE,
+                     verbose=TRUE,
+                     cv.folds=3,                ## 3-fold cv 
+                     n.cores=1)
+#       gbm_fit<-gbm.fit(target~.,data=gbm_input 
+#            n.trees = 200,
+#            distribution = "multinomial",
+#            shrinkage=0.1,
+#            interaction.depth=2,       ## interaction depth of 1 (normally between 1 and 3)
 #             bag.fraction=0.5,        ## out of 93 predictors select 3 to get weaker predictors
 #             nTrain=2,
-             keep.data=TRUE,
-             verbose=TRUE,
-             #cv.folds=2,                ## 2-fold cv 
-             #n.cores=1                 ## avoid annoying bugs
-        )
+#            keep.data=TRUE,
+#            verbose=TRUE,
+#             #cv.folds=2,                ## 2-fold cv 
+#             #n.cores=1                 ## avoid annoying bugs
+#        )
 
 #code from http://stackoverflow.com/questions/8722247/r-caret-and-gbm-cant-find-ntrees-input
 #gbmGrid <- expand.grid(.interaction.depth = (1:5) * 2, .n.trees = (1:5)*50, .shrinkage = .1)
@@ -180,7 +182,7 @@ cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_
 
         print(p)
 
-## evaluate performance of RF->GBM
+## EVALUATE PERFORMANCE OF RF->GBM
         ## assign eval_data
         td<-eval_data
 
@@ -192,135 +194,87 @@ cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_
         rf_predicted<-predict(rf_model, newdata=td, type="prob")
         rf_predicted<-as.data.frame(rf_predicted)
         ## then run gbm model
-        gbm_rf_predicted<-predict(gbm_fit, newdata=rf_predicted, type='response', 
-                                  n.trees=gbm_fit$bestTune$.n.trees)
+        gbm_rf_predicted<-predict(gbm_fit, newdata=rf_predicted, type='response')
         gbm_rf_predicted<-as.data.frame(gbm_rf_predicted)
 
         cat("the dimesions of the rf_predictions are ", nrow(gbm_rf_predicted), " X ", ncol(gbm_rf_predicted))
 
         cat("and the first few rows are")
-        head(rf_predicted,5)
+        head(gbm_rf_predicted,5)
 
-
+## Evaluate rf_predicted
         eval_predict <- as.factor(colnames(rf_predicted)[max.col(rf_predicted)])
         table(eval_predict, eval_data$target)
 
+# eval_predict Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
+# Class_1      41       1       0       0       0       0       3       5       5
+# Class_2      11    1028     318      90       4      11      31       8      12
+# Class_3       0     102     274      25       0       2      11       2       0
+# Class_4       0       4       4      65       0       1       2       0       0
+# Class_5       0       1       0       0     182       1       0       0       0
+# Class_6      19       6       0       7       2    1021      12      14      17
+# Class_7       5       9       6       2       0       6     112       3       1
+# Class_8      38       7       4       1       0      21      20     603      22
+# Class_9      39       1       1       0       0       5       0       4     312
 
-        td_model<-predict(gbm_fit, newdata=rf_predicted, type="response")
-
-td_gbm_predict<-td_model[,,1]
-td_gbm_predict<-as.data.frame(td_gbm_predict)
-
-td_names<-colnames(td_model)
-td_model<-as.data.frame(td_model)
-colnames(td_model)<-td_names
-td_predict <- as.factor(colnames(td_model)[max.col(td_model)])
-
-table(td_predict, td$target)
-
-# td_predict    Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
-#       Class_1      31       1       0       0       0       4       4       7      11
-#       Class_2      11     605     199      63       9       8      23       9      15
-#       Class_3       0      96     145      27       0       3      16       1       2
-#       Class_4       0      15       6      26       0       2       0       0       0
-#       Class_5       0       4       1       2      86       2       1       2       4
-#       Class_6       8       1       1       0       0     589      10      13      10
-#       Class_7       0       8      10       2       0       7      74       3       1
-#       Class_8      15       4       0       0       0      11       6     321       7
-#       Class_9      16       1       2       0       0      10       3       5     186       
-check<-table(td_predict ==eval_data$target)
-cat(check)
-
-accuracy<-1-check[1]/(check[1]+check[2])
-
-cat("The accuracy of the GBM Model is roughly ", round(100*accuracy,1), "%")   ## 74.6%
-
-
-## DO INTERMEDIATE EVALUATION
-td<-train_data2
-
-## predict and condition the data
-td_model<-predict(gbm_fit, newdata=td, type="response")
-
-td_gbm_predict<-td_model[,,1]
-td_gbm_predict<-as.data.frame(td_gbm_predict)
-
-
-
-
-## FINAL PREDICTION
-
-## test on the eval data set
-
-final_predict<-predict(rf_model, newdata=eval_data, type="prob")
-eval_predict <- as.factor(colnames(final_predict)[max.col(final_predict)])
-
+eval_predict <- as.factor(colnames(gbm_rf_predicted)[max.col(gbm_rf_predicted)])
 table(eval_predict, eval_data$target)
 
+# eval_predict  Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
+# Class_1.100      78       1       0       1       0       3       6      14       9
+# Class_2.100       8     961     246      55       4       9      17       4      10
+# Class_3.100       0     146     331      37       0       3      17       6       1
+# Class_4.100       0      20      14      88       0       3       3       0       0
+# Class_5.100       0       1       0       0     183       1       0       0       0
+# Class_6.100      14       4       1       6       1    1014       9      12      14
+# Class_7.100       6      18      11       2       0      10     128       4       1
+# Class_8.100      18       5       4       1       0      20      11     594      20
+# Class_9.100      29       3       0       0       0       5       0       5     314
+
+    ## fix levels and column names
+        levels(eval_predict)<-gsub(".100", "", levels(eval_predict))
+
+        check<-table(eval_predict==eval_data$target)
+        accuracy<-1-check[1]/(check[1]+check[2])
+
+        cat("accuracy of rf is ", round(100*accuracy,2), "%")
+
+        ## improved to 80.9%
 
 
-check<-table(average_predict_single ==td$target)
-cat(check)
-
-accuracy<-1-check[1]/(check[1]+check[2])
-
-cat(accuracy)
-
-## accuracy of 79.15% (Very slight increase)
 
 ##MAKE SUBMISSION
 
-## get the actual test data
-directory<- "/Users/winstonsaunders/Documents/pdxkagglegroupproductclassproject/"
-file_name<- "test.csv"
+        ## get the actual test data
+        directory<- "/Users/winstonsaunders/Documents/pdxkagglegroupproductclassproject/"
+        file_name<- "test.csv"
 
-real_test_data<-read.csv(paste0(directory,file_name))
-##just make sure its real
-print(head(real_test_data))
-## run the prediction
-gbm_real_test_model<-predict(gbm_fit, newdata=real_test_data, type="response")
-rf_real_test_model<-predict(td_rf_model, newdata=real_test_data, type="prob")
-## get the data
-a<-gbm_real_test_model[,,1]
-a<-as.data.frame(a)
-b<-rf_real_test_model
-submission<-(a+b)/2
-submission<-as.data.frame(submission)
-## clean up the numbers
-submission<-round(10000*submission,0)/10000.
+        real_test_data<-read.csv(paste0(directory,file_name))
+        ##just make sure its real
+        print(head(real_test_data))
+        ## run the prediction
+        gbm_real_test_model<-predict(gbm_fit, newdata=real_test_data, type="response")
+        rf_real_test_model<-predict(td_rf_model, newdata=real_test_data, type="prob")
+        ## get the data
+        a<-gbm_real_test_model[,,1]
+        a<-as.data.frame(a)
+        b<-rf_real_test_model
 
-## add ids back
-submission<-cbind("id"=as.integer(real_test_data$id), submission)
-submission<-as.data.frame(submission)
-submission$id<-as.integer(submission$id)
-## get rid of scientiic notation
-options(scipen=10)
-## check dimensions and data
-dim(submission)
-head(submission)
-tail(submission)
+        submission<-as.data.frame(submission)
+        ## clean up the numbers
+        submission<-round(10000*submission,0)/10000.
 
-## write csv
-write.csv(submission, paste0(directory,"May082",".csv"), row.names=F, quote=F)
+        ## add ids back
+        submission<-cbind("id"=as.integer(real_test_data$id), submission)
+        submission<-as.data.frame(submission)
+        submission$id<-as.integer(submission$id)
+        ## get rid of scientiic notation
+        options(scipen=10)
+        ## check dimensions and data
+        dim(submission)
+        head(submission)
+        tail(submission)
 
-## this is the May081 run
-## has a kaggle score of 0.56346 - right direction but marginal improvement
+        ## write csv
+        write.csv(submission, paste0(directory,"May082",".csv"), row.names=F, quote=F)
 
-## TRY GBM of just 2, 3, and 4
-
-train234<-train[train$target=="Class_2"|train$target=="Class_3"|train$target=="Class_3",]
-
-gbm_fit<-gbm(target~.-id, data=train234, 
-             n.trees = 200,
-             distribution = "multinomial",
-             shrinkage=0.05,
-             interaction.depth=2,       ## interaction depth of 1 (normally between 1 and 3)
-             train.fraction=0.5,
-             bag.fraction=0.031,        ## out of 93 predictors select 3
-             keep.data=TRUE,
-             verbose=TRUE,
-             cv.folds=3,                ## 3-fold cv 
-             n.cores=1)                 ## avoid annoying bugs
-
-
-## 
