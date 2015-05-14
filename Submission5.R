@@ -40,30 +40,21 @@ if (sample_data == TRUE){
         
 }
 
-cat("the dimensions of train_data are: ",dim(train_data)[1], " rows X ", dim(train_data)[2], "columns")
-cat("the dimensions of train_data2 are: ",dim(train_data2)[1], " rows X ", dim(train_data2)[2], "columns")
-cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_data)[2], "columns")
-
-## TRY GBM10 with an added RF
-## USE {gbm} PACKAGE
-## increase number of trees to 3000 since last run did not get validation down to lowest
-## inch down shrinkage = 0.025
-## explore increased depth to 3
-## keep bag.fraction 0.031 which will make 3
-## 
+        cat("the dimensions of train_data are: ",dim(train_data)[1], " rows X ", dim(train_data)[2], "columns")
+        cat("the dimensions of train_data2 are: ",dim(train_data2)[1], " rows X ", dim(train_data2)[2], "columns")
+        cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_data)[2], "columns")
 
 ## RANDOM FOREST
 
-        ## prep and condition the data
 
-        ## get rid of target data and id data
+        ## assign td
         td<-train_data
 
-        ## increase to 1000 trees and decrease node size to 3
+        ## Random forest Model
         set.seed(8765309)
         rf_model <- randomForest(target~.-id, data=td, importance=TRUE, ntree=100, nodesize=10)
 
-                ## first test results against eval_data
+                ## test results against eval_data
                 predict_rf_input<-eval_data
                 rf_predict<-predict(rf_model, newdata=predict_rf_input, type="prob")
                 rf_predict<-as.data.frame(rf_predict)
@@ -79,44 +70,10 @@ cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_
 
                 ## accuracy of 79.7%
 
-#                 ## note can do much better by simply augmenting probability of class_4
-#                 accuracy_vector<-matrix(rep(0,200), ncol=2)
-#                 
-#                         predict_rf_input<-eval_data
-#                         temp_predict<-predict(rf_model, newdata=predict_rf_input, type="prob")
-#                         temp_predict<-as.data.frame(temp_predict)
-#                                 b<- as.factor(colnames(temp_predict)[max.col(temp_predict)])
-#                                 check<-table(b==predict_rf_input$target)
-#                                 accuracy<-1-check[1]/(check[1]+check[2])
-# 
-#                                 cat("accuracy of rf is ", round(100*accuracy,2), "%")
-# 
-#                                 table(b,predict_rf_input$target)
-# 
-#                 for (a in 1:100){
-#                         b<-temp_predict
-#                         b$Class_4<-b$Class_4*(0.5+3*(a-1)/100)
-#                         b<- as.factor(colnames(b)[max.col(b)])
-#                         
-#                         check<-table(b==predict_rf_input$target)
-#                         accuracy<-1-check[1]/(check[1]+check[2])
-#                         
-#                         accuracy_vector[a,1]<-(0.5+3*(a-1)/100)
-#                         accuracy_vector[a,2]<-accuracy
-#                            
-#                 }
-#                 plot(accuracy_vector)
-#         
-#         table(rf_predict, eval_data$target)
-#         check<-table(rf_predict==eval_data$target)
-#         accuracy<-1-check[1]/(check[1]+check[2])
-# 
-#         cat("accuracy of this one is", accuracy)
 
+### GBM
 
-### GBM part
-
-## assign train data
+        ## assign train data
         td<-train_data2
         
         ##assign train_data and use to predict output
@@ -169,7 +126,6 @@ cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_
         ## summary of the tree
 
         fitsum <- summary(gbm_fit)
-        plot(fitsum)
 
         ## plot errors to check convergence and overfitting
 
@@ -186,7 +142,7 @@ cat("the dimensions of eval_data are: ",dim(eval_data)[1], " rows X ", dim(eval_
         ## assign eval_data
         td<-eval_data
 
-        cat("the dimesions of the eval data are ", nrow(td), " X ", ncol(td))
+        cat("the dimensions of the eval data are ", nrow(td), " X ", ncol(td))
 
         ##use to predict output
 
@@ -249,24 +205,35 @@ table(eval_predict, eval_data$target)
         directory<- "/Users/winstonsaunders/Documents/pdxkagglegroupproductclassproject/"
         file_name<- "test.csv"
 
-        real_test_data<-read.csv(paste0(directory,file_name))
+        submission_test_data<-read.csv(paste0(directory,file_name))
         ##just make sure its real
-        print(head(real_test_data))
+        print(head(submission_test_data))
         ## run the prediction
-        gbm_real_test_model<-predict(gbm_fit, newdata=real_test_data, type="response")
-        rf_real_test_model<-predict(td_rf_model, newdata=real_test_data, type="prob")
-        ## get the data
-        a<-gbm_real_test_model[,,1]
-        a<-as.data.frame(a)
-        b<-rf_real_test_model
-
+        
+        td<-submission_test_data
+        
+        rf_predicted<-predict(rf_model, newdata=td, type="prob")
+        rf_predicted<-as.data.frame(rf_predicted)
+        ## then run gbm model
+        gbm_rf_predicted<-predict(gbm_fit, newdata=rf_predicted, type='response')
+        gbm_rf_predicted<-as.data.frame(gbm_rf_predicted)
+        
+        cat("the dimesions of the rf_predictions are ", nrow(gbm_rf_predicted), " X ", ncol(gbm_rf_predicted))
+        
+        cat("and the first few rows are")
+        head(gbm_rf_predicted,5)
+        
+        submission<-gbm_rf_predicted
+        
+        ## convert to data frame format
         submission<-as.data.frame(submission)
+        
         ## clean up the numbers
         submission<-round(10000*submission,0)/10000.
 
         ## add ids back
-        submission<-cbind("id"=as.integer(real_test_data$id), submission)
-        submission<-as.data.frame(submission)
+        submission<-cbind("id"=as.integer(submission_test_data$id), submission)
+        #submission<-as.data.frame(submission)
         submission$id<-as.integer(submission$id)
         ## get rid of scientiic notation
         options(scipen=10)
