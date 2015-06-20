@@ -27,22 +27,26 @@
         
         ## GBM Parameters
         gbm_control<- trainControl(method="repeatedcv",
-                                   number=5,
+                                   number=3,
                                    repeats=2)
         gbm_grid <- expand.grid(
-                .interaction.depth = (1:5), 
-                .n.trees = (1:3)*100, 
-                .shrinkage = (1:3)*.005, 
+                .interaction.depth = (1:5)*2, 
+                .n.trees = (2:4)*50, 
+                .shrinkage = .1, 
                 .n.minobsinnode=5)
       
         
 ## DATA PARTITION
         ## group Classes 3 4 and 5 into one class
         group_234<- function(datax){
+                ## create additional factor column
+                datax$group<-rep("group_1", nrow(datax))
+                ## turn target into character
                 datax$target<-as.character(datax$target)
-                datax$target[datax$target=="Class_3"|datax$target=="Class_4"|datax$target=="Class_2"]<-"Class_234"
+                datax$group[datax$target=="Class_3"|datax$target=="Class_4"|datax$target=="Class_2"]<-"group_234"
                 datax$target<-as.factor(datax$target)
-                print(table(datax$target))
+                datax$group<-as.factor(datax$group)
+                print(table(datax$group))
                 return(datax)
         }
         
@@ -97,185 +101,168 @@ if (sample_data == TRUE){
         ## assign td
         td<-train_data
       
-        str(td)
-
         ## Random forest Model
         set.seed(8765309)
         cat("computing RF \n")
-        rf_model <- randomForest(target~.-id, data=td, importance=TRUE, ntree=P_ntree, nodesize=P_nodesize)
+        rf_model <- randomForest(group~.-id-target, data=td, importance=TRUE, ntree=P_ntree, nodesize=P_nodesize)
 
                 ## test results against eval_data
                 predict_rf_input<-eval_data
                 rf_predict<-predict(rf_model, newdata=predict_rf_input, type="prob")
                 rf_predict<-as.data.frame(rf_predict)
-                        temp_predict<-rf_predict
+                        
                 
                 rf_predict<- as.factor(colnames(rf_predict)[max.col(rf_predict)])
 
-                print(table(rf_predict, eval_data$target))
+                print(table(rf_predict, eval_data$group))
    
-                check<-table(rf_predict==eval_data$target)
+                check<-table(rf_predict==eval_data$group)
                 accuracy<-1-check[1]/(check[1]+check[2])
 
                 cat("accuracy of rf is ", round(100*accuracy,2), "%","\n")
 
-                ## accuracy of rf %
+                ## accuracy of rf is  97.31 %
 
         
 ### SPLIT DATA ANALYSIS
         
         td<-train_data2
         
+        
         ## make the predictions
         rf_predicted<-predict(rf_model, newdata=td, type="prob")
+        
         rf_predicted<-as.data.frame(rf_predicted)
         
-        gbm_input<-cbind(rf_predicted, 'target'=train_data2$target)
+        ## predict group for data
+        group_predict<- as.factor(colnames(rf_predicted)[max.col(rf_predicted)])
         
         
-        ## add an_index which will be later used to recombine rows
-        rf$predicted$an_index<-1:nrow(rf_predicted)
+        ## split data into groups
+        td_gr1<-td[group_predict=="group_1", ]
+        td_gr234<-td[group_predict=="group_234", ]
         
-        ## make target a character field
-        rf_predicted$target<-as.character(rf_predicted$target)
-        345_predicted<-rf_predicted[rf_predicted$target=="Class_345",]
-        else_predicted<-rf_predicted[rf_predicted$target!="Class_345",]
-        
-        ## turn back into classification factors
-        
-        345_predicted$target<-as.factor(345_predicted$target)
-        else_predicted$target<-as.factor(else_predicted$target)
-        
-        head(345_predicted)
-        str(else_predicted)
-
 ### GBM
 
-        ## assign second partition of train data
-        td<-train_data2
         
-        ##assign train_data and use to predict output
-        
-        rf_predicted<-predict(rf_model, newdata=td, type="prob")
-        rf_predicted<-as.data.frame(rf_predicted)
-        
-        head(rf_predicted)
-        
-        ## This is where separate models are created
-        ## requires careful bookkeeping
-        
-        
+        #First try single model with additional factor
 
-        td_target<-train_data2$target
-
-        gbm_input<-cbind(rf_predicted, 'target'=td_target)
+        gbm_input<-td_gr234
       
-        ## use gbm fit to fit output of rf to data
-        ## note that x = the rf_predicted values of class data
-        ## The y are the actual target values of the data
 
         set.seed(8675309)
         
         bootControl <- trainControl(number = 1)
         
-        gbm_fit <- train(target~.,
+        gbm_fit234 <- train(target~.-id,
                         data=gbm_input, 
                         method = "gbm", 
                         tuneLength = 5,
-                        train.fraction=0.8,
+                        nTrain=0.8*nrow(gbm_input),
                         trControl = bootControl,
                         ##scaled = FALSE,
-                        tuneGrid = gbmGrid 
+                        tuneGrid = gbm_grid 
                 )
         
+        
+        
+        gbm_input<-td_gr1
+        
+        
+        set.seed(8675309)
+        
+        gbm_fit1 <- train(target~.-id,
+                          data=gbm_input, 
+                          method = "gbm", 
+                          tuneLength = 5,
+                          nTrain=0.8*nrow(gbm_input),
+                          trControl = bootControl,
+                          ##scaled = FALSE,
+                          tuneGrid = gbm_grid 
+        )
 
-#         gbm_fit<-gbm(target~.,data=gbm_input, 
-#                      n.trees = P_n.trees,
-#                      distribution = "multinomial",
-#                      shrinkage=P_shrinkage,
-#                      interaction.depth=P_interaction.depth,
-#                      #n.minobsinnode<-P_n.minobsinnode,
-#                      train.fraction=P_train.fraction,
-#                      keep.data=TRUE,
-#                      verbose=TRUE,
-#                      cv.folds=P_cv.folds,                ## 3-fold cv 
-#                      n.cores=1)
-# 
-        ## summary of the fit
-
-        fitsum <- summary(gbm_fit)
-
-        ## plot errors to check convergence and overfitting
-
-        gbm_plot<-as.data.frame(cbind(gbm_fit$train.error, gbm_fit$valid.error))
-        colnames(gbm_plot)<-c("train.error", "valid.error")
-        gbm_plot$iteration<-1:gbm_fit$n.tree
-
-        p<-ggplot(gbm_plot, aes(x=iteration, y = train.error))+geom_line()
-        p<-p+geom_line(aes(x=iteration, y =valid.error), color="red")
-
-        print(p)
+        print(gbm_fit234$bestTune)
+        print(gbm_fit1$bestTune)
+        
+        
+        plot(gbm_fit234)
+        plot(gbm_fit1)
+        
+        
+        plot(gbm_fit234, metric="Accuracy", plotType="level", scales=list(x=list(rot=90)))
+        plot(gbm_fit1, metric="Accuracy", plotType="level", scales=list(x=list(rot=90)))
 
 ## EVALUATE PERFORMANCE OF RF->GBM
         ## assign eval_data
         td<-eval_data
+        
+        rownames(td)<-1:nrow(td)
+        td$id<-as.numeric(rownames(td))
 
         cat("the dimensions of the eval data are ", nrow(td), " X ", ncol(td),"\n")
 
+        td$group<-NULL
+        
         ##use to predict output
 
         ## fitrst run rf model
         rf_predicted<-predict(rf_model, newdata=td, type="prob")
         rf_predicted<-as.data.frame(rf_predicted)
+        
+        group_predict<- as.factor(colnames(rf_predicted)[max.col(rf_predicted)])
+        
+        td<-cbind(td, "group"=group_predict)
+        td_gr1<-td[td$group=="group_1", ]
+        td_gr234<-td[td$group=="group_234", ]
+        
         ## then run gbm model
-        gbm_rf_predicted<-predict(gbm_fit, newdata=rf_predicted, type='prob')
-        gbm_rf_predicted<-as.data.frame(gbm_rf_predicted)
+        gbm_predict1<-predict(gbm_fit1, newdata=td_gr1, type='prob')
+        ## add bookkeeping to ensure correct row order
+        gbm_predict1<-cbind("id"=td_gr1$id, gbm_predict1)
+        gbm_predict234<-predict(gbm_fit234, newdata=td_gr234, type='prob')
+        ## add bookkeeping to ensure correct row order
+        gbm_predict234<-cbind("id"=td_gr234$id, gbm_predict234)
+        prediction_all<-rbind(gbm_predict1, gbm_predict234)
         ##check prediction
-        print(head(gbm_rf_predicted))
+        
+        
+        prediction_all<-prediction_all[order(prediction_all$id),]
+        print(head(prediction_all))
 
         cat("the dimesions of the rf_predictions are ", nrow(gbm_rf_predicted), " X ", ncol(gbm_rf_predicted),"\n")
 
         cat("and the first few rows are","\n")
-        print(head(gbm_rf_predicted,5))
+        print(head(prediction_all,5))
         
         ## clean up names in predicted table
-        names(gbm_rf_predicted)<-gsub(".[0-9]{2,}","",names(gbm_rf_predicted) )
+        names(prediction_all)<-gsub(".[0-9]{2,}","",names(prediction_all) )
 
+        ## get rid of bookkeping
+        prediction_all$id<-NULL
 ## Evaluate rf_predicted
-        eval_predict <- as.factor(colnames(rf_predicted)[max.col(rf_predicted)])
+        eval_predict <- as.factor(colnames(prediction_all)[max.col(prediction_all)])
         print(table(eval_predict, eval_data$target))
 
 #         eval_predict Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
-#         Class_1      17       0       0       0       0       1       1       1       3
-#         Class_2       6     520     143      47       3       4      12       2       0
-#         Class_3       0      45     146       9       0       0       7       1       1
-#         Class_4       0       3       2      38       0       1       4       0       0
-#         Class_5       1       1       0       0      83       0       0       0       0
-#         Class_6       4       1       0       7       1     492      11       6       6
-#         Class_7       2       3       7       0       0       1      60       0       1
-#         Class_8      16       1       2       0       0      11      10     304      11
-#         Class_9      22       0       1       0       0       3       1       1     145
-
-        eval_predict <- as.factor(colnames(gbm_rf_predicted)[max.col(gbm_rf_predicted)])
-        print(table(eval_predict, eval_data$target))
-
-        #         eval_predict Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
-        #         Class_1      38       1       0       0       0       2       3       3       7
-        #         Class_2       6     486     116      28       1       1       2       2       0
-        #         Class_3       0      72     170      14       0       0      12       0       0
-        #         Class_4       1       7       5      52       0       1       3       0       0
-        #         Class_5       1       1       0       0      86       0       0       0       0
-        #         Class_6       4       1       0       5       0     494       3       6       7
-        #         Class_7       2       6       7       2       0       2      76       0       2
-        #         Class_8       6       0       2       0       0      11       7     301      10
-        #         Class_9      10       0       1       0       0       2       0       3     141
+#         Class_1      46       1       0       0       0       0       2       0       4
+#         Class_2       4     514     123      23       1       3       9       1       2
+#         Class_3       1      41     165      15       0       0       6       1       0
+#         Class_4       0       5       2      58       0       2       2       0       0
+#         Class_5       1       3       0       0      86       0       0       0       0
+#         Class_6       1       3       2       3       0     500       3       4       5
+#         Class_7       1       5       6       1       0       0      80       1       1
+#         Class_8       5       1       2       1       0       4       3     305       7
+#         Class_9       9       1       1       0       0       4       1       3     148       
 
         check<-table(eval_predict==eval_data$target)
         accuracy<-1-check[1]/(check[1]+check[2])
 
         cat("accuracy of rf is ", round(100*accuracy,2), "%","\n")
 
-        ## accuracy of rf is  82.62 % 
+        ## accuracy of rf is  85.22 %
+   
+        ## Best yet!     
+        
 
 ##MAKE SUBMISSION
 
