@@ -130,16 +130,15 @@ if (sample_data == TRUE){
                 print(table(categorization_predict, eval_data$group))
                 
 #                 categorization_predict group_1 group_234
-#                 group_1      1224        28
-#                 group_234      32       948
-#                 accuracy of rf is  97.31 % 
+#                 group_1      1218        30
+#                 group_234      38       946
    
                 check<-table(categorization_predict==eval_data$group)
                 accuracy<-1-check[1]/(check[1]+check[2])
 
                 cat("accuracy of rf is ", round(100*accuracy,2), "%","\n")
 
- 
+ #                  accuracy of rf is  96.95 % 
 
         
 ### SPLIT DATA ANALYSIS
@@ -156,7 +155,7 @@ if (sample_data == TRUE){
         td_gr1<-td[td$group=="group_1", ]
         td_gr234<-td[td$group=="group_234", ]
         
-### Use GBM's to classify the data 
+### DIfferent Model Attempts to classify the data 
 
         ## create Group_234 model
         ## drop levels
@@ -164,24 +163,91 @@ if (sample_data == TRUE){
         
         ## get rid of group designator
         td_gr234$group<-NULL
+        ## explore data correlations
+        ggplot(td_gr234, aes(y=feat_67, x = target))+geom_jitter() 
+        ggplot(td_gr234, aes(y=feat_15, x = feat_15*feat_16, color = target))+geom_jitter() 
+        ggplot(td_gr234, aes(y=sqrt(feat_23*feat_24), x = sqrt(feat_22*feat_23), color = target))+geom_jitter() 
         
-        ggplot(td_gr234, aes(y=feat_79, x = target))+geom_violin()
+#         ## add customer filters
+          ## this method didn't work
+#         bb<-td_gr234
+#         
+#         bracket <- function(x, l1=100, l2=150) 
+#             {
+#             t<-10
+#             if (x<l2) t<-5
+#             if (x<l1) t<-0
+#             x<-t
+#             }
+#         
+#         
+# 
+#         bb$feat_92<-sapply(bb$feat_92, bracket, l1=1, l2=2)
+#         bb$feat_90<-sapply(bb$feat_90, bracket, l1=1, l2=3)
+#         bb$feat_89<-sapply(bb$feat_89, bracket, l1=18)  ## if abve 18 --> class 4
+#         bb$feat_77<-sapply(bb$feat_77, bracket, l1=3)  ## if above 3 --> class 2
         
-        #try a filter
-            aa<-td_gr234
-            aa<-aa[, -c(1,95)]
+#            bb$feat_1<-sapply(bb$feat_77, bracket, l1=24)  ## if above 24 --> class 4
+#            bb$feat_5<-sapply(bb$feat_5, bracket, l1=6)  ## if above 6 --> class 2
+#            bb$feat_26<-sapply(bb$feat_26, bracket, l1=5)  ## if above 4 --> class 4
+#            bb$feat_25<-sapply(bb$feat_25, bracket, l1=10)  ## if above 10 --> NOT class 4
+#            bb$feat_6_7<-sapply(sqrt(bb$feat_6*bb$feat_7)), bracket, l1=0.8)  ## mostly Class_2
+#            bb$feat_6_8<-sapply(sqrt(bb$feat_6*bb$feat_8)), bracket, l1=0.8)  ## mostly Class_2
         
-            aa<-pmin(aa, aa*0+3)
+#         bb$feat_76<-sapply(bb$feat_76, bracket, l1=2, l2=2)
+#         bb$feat_75<-sapply(bb$feat_75, bracket, l1=2, l2=2)
+#         bb$feat_67<-sapply(bb$feat_67, bracket, l1=10, l2=20)
+#         bb$feat_66<-sapply(bb$feat_66, bracket, l1=6, l2=10)
+#         bb$feat_64<-sapply(bb$feat_64, bracket, l1=4, l2=6)
+#         bb$feat_62<-sapply(bb$feat_64, bracket, l1=2, l2=6)
+#         bb$feat_59<-sapply(bb$feat_64, bracket, l1=2, l2=5)
+#         bb$feat_58<-sapply(bb$feat_58, bracket)
+#         bb$feat_57<-sapply(bb$feat_57, bracket)
+#         bb$feat_56<-sapply(bb$feat_64, bracket, l1=5, l2=10)
+#         
+#         td_gr234<-bb
+        
+#         #try a filter
+#         # not much better
+#             aa<-td_gr234
+#             aa<-aa[, -c(1,95)]
+#         
+#             aa<-pmin(aa, aa*0+2)
+#             
+#             aa$target<-td_gr234$target
+#             aa$id<-td_gr234$id
+# #             predict_234_single Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
+# #             Class_2       0     496     144      42       0       0       0       0       0
+# #             Class_3       0      74     152      16       0       0       0       0       0
+# #             Class_4       0       4       5      43       0       0       0       0       0
+        bb<-td_gr234
+        bb$target<-as.character(bb$target)
+        
+        for (i in 2:(ncol(bb)-1)){
+            aa<-cbind(target=bb$target, feature = bb[,i])
+            aa<-as.data.frame(aa)
+            aa$target<-as.character(aa$target)
+            aa$feature<-as.numeric(aa$feature)
+            gr_2<-quantile(aa[aa$target=="Class_2",2], probs=.999)[[1]]
+            gr_3<-quantile(aa[aa$target=="Class_3",2], probs=.999)[[1]]
+            gr_4<-quantile(aa[aa$target=="Class_4",2], probs=.999)[[1]]
             
-            aa$target<-td_gr234$target
-            aa$id<-td_gr234$id
+            filter<-min(gr_2, gr_3, gr_4)
+            
+            bb[,i]<-sapply(bb[,i], bracket, l1=filter)
+        }
+        
+#         predict_234_single Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
+#         Class_2       0     496     144      42       0       0       0       0       0
+#         Class_3       0      74     152      16       0       0       0       0       0
+#         Class_4       0       4       5      43       0       0       0       0       0
         
         
         set.seed(8675309)
         start_time <- proc.time()
         cat("computing RF \n")
         
-        model_234 <- randomForest(target~.+feat_79^2-id, data=aa, importance=TRUE, ntree=P_ntree, nodesize=P_nodesize)
+        model_234 <- randomForest(target~.-id, data=td_gr234, importance=TRUE, ntree=P_ntree, nodesize=P_nodesize)
         
         finish_time<-proc.time()
         elapsed_time<-finish_time-start_time
@@ -197,6 +263,11 @@ if (sample_data == TRUE){
         
         print(table(predict_234_single, eval_gr234$target))
         
+#         predict_234_single Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
+#         Class_2       0     505     153      40       0       0       0       0       0
+#         Class_3       0      63     144      13       0       0       0       0       0
+#         Class_4       0       6       4      48       0       0       0       0       0
+#         
         
         
         ###
@@ -209,6 +280,11 @@ if (sample_data == TRUE){
                          train.fraction=0.67,
                          verbose=TRUE
         )
+        
+#         predict_234_single Class_1 Class_2 Class_3 Class_4 Class_5 Class_6 Class_7 Class_8 Class_9
+#         Class_2       0     485     146      26       0       0       0       0       0
+#         Class_3       0      81     146      18       0       0       0       0       0
+#         Class_4       0       8       9      57       0       0       0       0       0
 #         require(adabag)
 #         gbm_fit234 <- train(target~.-id,
 #                             data=td_gr234,

@@ -22,29 +22,22 @@
         GBM_sample<-0.90
         
         ## Random Forest Parameters
-        P_ntree<-20
-        P_nodesize<-3
+        P_ntree<-50
+        P_nodesize<-1
         
         ## GBM Parameters
         gbm_control<- trainControl(method="repeatedcv",
                                    number=3,
                                    repeats=2)
         gbm_grid <- expand.grid(
-                .interaction.depth = (1:2)*10, 
-                .n.trees = (1:2)*100, 
-                .shrinkage = .05, 
-                .n.minobsinnode=3)
-        
-        ada_grid<- expand.grid(
-                .iter= c(50,100),
-                .maxdepth = c(4,8),
-                .nu = c(0.1,1))
-        
-        cv_control <- trainControl(method= "repeatedcv", repeats = 3)
+                .interaction.depth = (1:5)*2, 
+                .n.trees = (2:4)*50, 
+                .shrinkage = .1, 
+                .n.minobsinnode=5)
       
         
-## FUNCTION FOR DATA BUNDLING
-        ## group Classes 2, 3 4 into one class called group_234, all others into another called group_1
+## DATA PARTITION
+        ## group Classes 3 4 and 5 into one class
         group_234<- function(datax){
                 ## create additional factor column
                 datax$group<-rep("group_1", nrow(datax))
@@ -76,17 +69,14 @@ sample_data<-TRUE
 set.seed(8675309)
 if (sample_data == TRUE){
         sample_rows <- sample(1:nrow(train_data), size=RF_sample*nrow(train_data))
-        ## create two data sets
         td<-train_data[sample_rows,]
         train_data2<-train_data[-sample_rows,]
         
-        ## create a third, smaller sample for intermediate evaluation
+        ## create a second smaller sample for intermediate evaluation
         sample_rows2<- sample(1:nrow(train_data2), size=GBM_sample*nrow(train_data2))
-        ## create two data sets, preserving teh name of the first
         train_data2<-train_data2[sample_rows2,]
         eval_data<-train_data2[-sample_rows2,]
         
-        ## reassign train data
         train_data<-td
         
 }
@@ -101,197 +91,87 @@ if (sample_data == TRUE){
         eval_data_full<-eval_data
         
 ## GROUP DATA
-        ## apply grouping function to full data sets to evaluate 
+        ## apply grouping function to full data sets
         train_data<-group_234(train_data)
         train_data2<-group_234(train_data2)
         eval_data<-group_234(eval_data)
         
-## CATEGORIZATION MODEL
+## RANDOM FOREST
 
         ## assign td
         td<-train_data
       
         ## Random forest Model
         set.seed(8765309)
-        start_time <- proc.time()
         cat("computing RF \n")
-        categorization_model <- randomForest(group~.-id-target, data=td, importance=TRUE, ntree=P_ntree, nodesize=P_nodesize)
-        finish_time<-proc.time()
-        elapsed_time<-finish_time-start_time
-        cat("time ", elapsed_time, " seconds \n")
+        rf_model <- randomForest(group~.-id-target, data=td, importance=TRUE, ntree=P_ntree, nodesize=P_nodesize)
+
                 ## test results against eval_data
-                predict_categorization_input<-eval_data
-                categorization_predict<-predict(categorization_model, newdata=predict_categorization_input, type="prob")
-                categorization_predict<-as.data.frame(categorization_predict)
+                predict_rf_input<-eval_data
+                rf_predict<-predict(rf_model, newdata=predict_rf_input, type="prob")
+                rf_predict<-as.data.frame(rf_predict)
                         
                 
-                categorization_predict<- as.factor(colnames(categorization_predict)[max.col(categorization_predict)])
+                rf_predict<- as.factor(colnames(rf_predict)[max.col(rf_predict)])
 
-                print(table(categorization_predict, eval_data$group))
-                
-#                 categorization_predict group_1 group_234
-#                 group_1      1224        28
-#                 group_234      32       948
-#                 accuracy of rf is  97.31 % 
+                print(table(rf_predict, eval_data$group))
    
-                check<-table(categorization_predict==eval_data$group)
+                check<-table(rf_predict==eval_data$group)
                 accuracy<-1-check[1]/(check[1]+check[2])
 
                 cat("accuracy of rf is ", round(100*accuracy,2), "%","\n")
 
- 
+                ## accuracy of rf is  97.31 %
 
         
 ### SPLIT DATA ANALYSIS
-    ##
-    ## My thinking here is that I can use the same training data as above. 
-    ## is that legit?
-                
         
-        td<-train_data
+        td<-train_data2
         
+        
+        ## make the predictions
+        rf_predicted<-predict(rf_model, newdata=td, type="prob")
+        
+        rf_predicted<-as.data.frame(rf_predicted)
+        
+        ## predict group for data
+        group_predict<- as.factor(colnames(rf_predicted)[max.col(rf_predicted)])
         
         
         ## split data into groups
-        td_gr1<-td[td$group=="group_1", ]
-        td_gr234<-td[td$group=="group_234", ]
+        td_gr1<-td[group_predict=="group_1", ]
+        td_gr234<-td[group_predict=="group_234", ]
         
-### Use GBM's to classify the data 
+### GBM
 
-        ## create Group_234 model
-        ## drop levels
-        td_gr234<-droplevels(td_gr234)
         
-        ## get rid of group designator
-        td_gr234$group<-NULL
-        
-        ggplot(td_gr234, aes(y=feat_79, x = target))+geom_violin()
-        
-        #try a filter
-            aa<-td_gr234
-            aa<-aa[, -c(1,95)]
-        
-            aa<-pmin(aa, aa*0+3)
-            
-            aa$target<-td_gr234$target
-            aa$id<-td_gr234$id
-        
-        
+        #First try single model with additional factor
+
+        gbm_input<-td_gr234
+      
+
         set.seed(8675309)
-        start_time <- proc.time()
-        cat("computing RF \n")
         
-        model_234 <- randomForest(target~.+feat_79^2-id, data=aa, importance=TRUE, ntree=P_ntree, nodesize=P_nodesize)
+        bootControl <- trainControl(number = 1)
         
-        finish_time<-proc.time()
-        elapsed_time<-finish_time-start_time
-        cat("time ", elapsed_time, " seconds \n")
-        
-        eval_gr234<-eval_data[eval_data$group=="group_234",]
-        
-        predict_234<-predict(model_234, newdata=eval_gr234, type="prob")
-        predict_234<-as.data.frame(predict_234)
-        
-        
-        predict_234_single<- as.factor(colnames(predict_234)[max.col(predict_234)])
-        
-        print(table(predict_234_single, eval_gr234$target))
-        
-        
-        
-        ###
         gbm_fit234 <- train(target~.-id,
-                         data=td_gr234, 
-                         method = "gbm", 
-                         trControl = gbm_control,
-                         ##scaled = FALSE,
-                         tuneGrid = gbm_grid,
-                         train.fraction=0.67,
-                         verbose=TRUE
-        )
-#         require(adabag)
-#         gbm_fit234 <- train(target~.-id,
-#                             data=td_gr234,
-#                             method="ada",
-#                             tuneGrid= ada_grid,
-#                             trControl = cv_control,
-#                             train.fraction=0.67
-#         )
-        
-        predict_234<-predict(gbm_fit234, newdata=eval_gr234, type="prob")
-        predict_234<-as.data.frame(predict_234)
+                        data=gbm_input, 
+                        method = "gbm", 
+                        tuneLength = 5,
+                        nTrain=0.8*nrow(gbm_input),
+                        trControl = bootControl,
+                        ##scaled = FALSE,
+                        tuneGrid = gbm_grid 
+                )
         
         
-        predict_234_single<- as.factor(colnames(predict_234)[max.col(predict_234)])
         
-        print(table(predict_234_single, eval_gr234$target))
-        
-        eval_gr234<-droplevels(eval_gr234)
-        
-        ## let's do some examination
-        eval_temp<-eval_gr234
-        eval_temp<-cbind(eval_temp, predict_234_single)
-        misses<-eval_temp[eval_temp$target!=predict_234_single,]
-        hits<-eval_temp[eval_temp$target==predict_234_single,]
-        
-## DATA MUNGING
-        ## convert from wide to long format
-        ## useful for plotting etc.
-        require(tidyr)
-        ## use tidyr package to munge the data into a long format with the feature id as a feature variable
-        long_misses<-gather(misses, feature, data, feat_1:feat_93)
-        long_hits<-gather(hits, feature, data, feat_1:feat_93)
-        
-        print(head(long_hits,12))
-        
-        
-        ## summarize using ddply to get means and standard deviations
-        train_morph<-ddply(long_hits, c("target", "feature"), summarize, mean_data = mean(data), sdev_data = sqrt(var(data)), max_data=max(data))
-        ## calculate the CV
-        train_morph$CV<-train_morph$sdev_data/(train_morph$mean_data+.00001)
-        
-        #head(train_morph)
-        #str(train_morph)
-        
-        ## INFORMATIONAL PLOTS
-        
-        p<-ggplot(train_morph, aes(x=target, y=mean_data, color=feature))+geom_point()+ theme_bw()
-        p <- p + ggtitle("means of several features versus class for hits")
-        p <- p + geom_text(data=train_morph, aes(x = target, y = mean_data,label=feature), size=4, position = position_jitter(w = 0.1, h = .1))
-        #p <- p + guides(color=guide_legend(nrow=15))
-        print(p)
-        
-        ## summarize using ddply to get means and standard deviations
-        train_morph<-ddply(long_misses, c("target", "feature"), summarize, mean_data = mean(data), sdev_data = sqrt(var(data)), max_data=max(data))
-        ## calculate the CV
-        train_morph$CV<-train_morph$sdev_data/(train_morph$mean_data+.00001)
-        
-        #head(train_morph)
-        #str(train_morph)
-        
-        ## INFORMATIONAL PLOTS
-        
-        p<-ggplot(train_morph, aes(x=target, y=mean_data, color=feature))+geom_point()+ theme_bw()
-        p <- p + ggtitle("means of several features versus class for misses")
-        p <- p + geom_text(data=train_morph, aes(x = target, y = mean_data,label=feature), size=4, position = position_jitter(w = 0.1, h = .1))
-        #p <- p + guides(color=guide_legend(nrow=15))
-        print(p)
-        
-        p<-ggplot(train_morph, aes(x=target, y=max_data, color=feature))+geom_point()+ theme_bw()
-        p <- p + ggtitle("maxs of several features versus class for misses")
-        p <- p + geom_text(data=train_morph, aes(x = target, y = max_data,label=feature), size=4, position = position_jitter(w = 0.1, h = .1))
-        #p <- p + guides(color=guide_legend(nrow=15))
-        print(p)
-        
-        
-        ## create Group_1 model
         gbm_input<-td_gr1
         
+        
         set.seed(8675309)
         
-        
-        
-        gbm_fit1 <- train(target~.-id-group,
+        gbm_fit1 <- train(target~.-id,
                           data=gbm_input, 
                           method = "gbm", 
                           tuneLength = 5,
@@ -301,15 +181,12 @@ if (sample_data == TRUE){
                           tuneGrid = gbm_grid 
         )
 
-        ## print out some diagnostics
         print(gbm_fit234$bestTune)
         print(gbm_fit1$bestTune)
         
-        print(gbm_fit234$importance)
-        print(gbm_fit1$importance)
         
-        plot(gbm_fit234$importance)
-        plot(gbm_fit1$importance)
+        plot(gbm_fit234)
+        plot(gbm_fit1)
         
         
         plot(gbm_fit234, metric="Accuracy", plotType="level", scales=list(x=list(rot=90)))
